@@ -1,0 +1,291 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Configuration;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Dalamud.DiscordBridge.Model;
+using Dalamud.Game.Chat;
+using Dalamud.Plugin;
+using Discord;
+using Discord.WebSocket;
+using Lumina.Excel.GeneratedSheets;
+
+namespace Dalamud.DiscordBridge
+{
+    public class DiscordHandler : IDisposable
+    {
+        private readonly DiscordSocketClient socketClient;
+
+        public bool IsConnected => this.socketClient.ConnectionState == ConnectionState.Connected;
+        public ulong UserId => this.socketClient.CurrentUser.Id;
+
+        /// <summary>
+        /// Defines if the bot has connected and verified that it has the correct permissions
+        /// </summary>
+        public DiscordState State { get; private set; } = DiscordState.None;
+
+        private readonly Plugin plugin;
+
+        /// <summary>
+        /// Chat types that are set when used the "all" setting.
+        /// </summary>
+        private static readonly XivChatType[] DefaultChatTypes = new[]
+        {
+            XivChatType.Say,
+            XivChatType.Shout,
+            XivChatType.Yell,
+            XivChatType.Party,
+            XivChatType.CrossParty,
+            XivChatType.PvPTeam,
+            XivChatType.TellIncoming,
+            XivChatType.Alliance,
+            XivChatType.FreeCompany,
+            XivChatType.Ls1,
+            XivChatType.Ls2,
+            XivChatType.Ls3,
+            XivChatType.Ls4,
+            XivChatType.Ls5,
+            XivChatType.Ls6,
+            XivChatType.Ls7,
+            XivChatType.Ls8,
+            XivChatType.NoviceNetwork,
+            XivChatType.CrossLinkShell1,
+            XivChatType.CrossLinkShell2,
+            XivChatType.CrossLinkShell3,
+            XivChatType.CrossLinkShell4,
+            XivChatType.CrossLinkShell5,
+            XivChatType.CrossLinkShell6,
+            XivChatType.CrossLinkShell7,
+            XivChatType.CrossLinkShell8
+        };
+
+        /// <summary>
+        /// Embed color signalling that everything is fine.
+        /// </summary>
+        private const int EmbedColorFine = 0x478CFF;
+
+        /// <summary>
+        /// Embed color signalling that everything is bad.
+        /// </summary>
+        private const int EmbedColorError = 0xD10303;
+
+        /// <summary>
+        /// The asynchronous message queue that is responsible for sending messages in order.
+        /// </summary>
+        public readonly DiscordMessageQueue MessageQueue;
+
+        public DiscordHandler(Plugin plugin)
+        {
+            this.plugin = plugin;
+
+            this.MessageQueue = new DiscordMessageQueue(this);
+
+            this.socketClient = new DiscordSocketClient();
+            this.socketClient.Ready += SocketClientOnReady;
+            this.socketClient.MessageReceived += SocketClientOnMessageReceived;
+        }
+
+        public async Task Start()
+        {
+            if (string.IsNullOrEmpty(this.plugin.Config.DiscordToken))
+            {
+                this.State = DiscordState.TokenInvalid;
+
+                PluginLog.Error("Token empty, cannot start bot.");
+                return;
+            }
+
+            try
+            {
+                await this.socketClient.LoginAsync(TokenType.Bot, this.plugin.Config.DiscordToken);
+                await this.socketClient.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, "Token invalid, cannot start bot.");
+            }
+
+            this.MessageQueue.Start();
+
+            PluginLog.Verbose("DiscordHandler START!!");
+        }
+
+        private async Task SocketClientOnReady()
+        {
+            this.State = DiscordState.Ready;
+
+            PluginLog.Verbose("DiscordHandler READY!!");
+        }
+
+        private async Task SocketClientOnMessageReceived(SocketMessage message)
+        {
+            var args = message.Content.Split();
+
+            if (args[0].StartsWith(this.plugin.Config.DiscordBotPrefix + "setchannel") &&
+                await EnsureOwner(message.Author, message.Channel))
+            {
+                // Are there parameters?
+                if (args.Length == 1)
+                {
+                    await SendGenericEmbed(message.Channel,
+                        $"You need to specify some chat kinds to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.", "Error", EmbedColorError);
+                }
+
+                // Is there any chat type that's not recognized?
+                if (args.Take(1).Any(x => XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                {
+                    await SendGenericEmbed(message.Channel,
+                        $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.", "Error", EmbedColorError);
+                }
+
+                if (!this.plugin.Config.ChannelConfigs.TryGetValue(message.Channel.Id, out var config))
+                    config = new DiscordChannelConfig();
+
+                foreach (var selectedKind in args.Take(1))
+                {
+                    if (selectedKind == "any")
+                    {
+                        config.SetUnique(DefaultChatTypes);
+                    }
+                    else
+                    {
+                        var chatType = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        config.SetUnique(chatType);
+                    }
+                }
+
+                await SendGenericEmbed(message.Channel,
+                    $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}", "Chat kinds set", EmbedColorFine);
+            }
+
+            if (args[0].StartsWith(this.plugin.Config.DiscordBotPrefix + "unsetchannel") &&
+                await EnsureOwner(message.Author, message.Channel))
+            {
+                // Are there parameters?
+                if (args.Length == 1)
+                {
+                    await SendGenericEmbed(message.Channel,
+                        $"You need to specify some chat kinds to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.", "Error", EmbedColorError);
+                }
+
+                // Is there any chat type that's not recognized?
+                if (args.Take(1).Any(x => XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                {
+                    await SendGenericEmbed(message.Channel,
+                        $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.", "Error", EmbedColorError);
+                }
+
+                if (!this.plugin.Config.ChannelConfigs.TryGetValue(message.Channel.Id, out var config))
+                    config = new DiscordChannelConfig();
+
+                foreach (var selectedKind in args.Take(1))
+                {
+                    if (selectedKind == "any")
+                    {
+                        config.UnsetUnique(DefaultChatTypes);
+                    }
+                    else
+                    {
+                        var chatType = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        config.UnsetUnique(chatType);
+                    }
+                }
+
+                await SendGenericEmbed(message.Channel,
+                    $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}", "Chat kinds set", EmbedColorFine);
+            }
+
+            if (args[0].StartsWith(this.plugin.Config.DiscordBotPrefix + "help"))
+            {
+                var builder = new EmbedBuilder()
+                    .WithTitle("Discord Bridge Help")
+                    .WithDescription("You can use the following commands to set up the Discord bridge.")
+                    .WithColor(new Color(EmbedColorFine))
+                    .WithFooter(footer => {
+                        footer
+                            .WithText("Dalamud Discord Bridge")
+                            .WithIconUrl("https://raw.githubusercontent.com/goatcorp/DalamudAssets/master/UIRes/logo.png");
+                    })
+                    .WithThumbnailUrl("https://raw.githubusercontent.com/goatcorp/DalamudAssets/master/UIRes/logo.png")
+                    .AddField("!setchannel", "Select, which kinds of chat should arrive in this channel.\n" +
+                                             "Format: ``!setchannel <kind1,kind2,...>``\n\n" +
+                                             $"The following chat kinds are available:\n```all - All regular chat\n{XivChatTypeExtensions.TypeInfoDict.Select(x => $"{x.Value.Slug} - {x.Value.FancyName}").Aggregate((x, y) => x + "\n" + y)}```")
+                    .AddField("!help", "See this message")
+                    .AddField("Need more help?", $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.");
+                var embed = builder.Build();
+                await message.Channel.SendMessageAsync(
+                        null,
+                        embed: embed)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        private async Task SendGenericEmbed(ISocketMessageChannel channel, string message, string title, uint color)
+        {
+            var builder = new EmbedBuilder()
+                .WithTitle(title)
+                .WithDescription(message)
+                .WithColor(new Color(color))
+                .WithFooter(footer => {
+                    footer
+                        .WithText("Dalamud Discord Bridge")
+                        .WithIconUrl("https://raw.githubusercontent.com/goatcorp/DalamudAssets/master/UIRes/logo.png");
+                })
+                .WithThumbnailUrl("https://raw.githubusercontent.com/goatcorp/DalamudAssets/master/UIRes/logo.png");
+                
+            var embed = builder.Build();
+            await channel.SendMessageAsync(
+                    null,
+                    embed: embed)
+                .ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Check if the sender of this message is set as the owner of this plugin, and send an error message to the specified channel if not null.
+        /// </summary>
+        /// <param name="user">User in question.</param>
+        /// <param name="errorMessageChannel">Channel for error message.</param>
+        /// <returns>True if the user is the owner of this plugin.</returns>
+        private async Task<bool> EnsureOwner(IUser user, ISocketMessageChannel errorMessageChannel = null)
+        {
+            if (user.Username + "#" + user.Discriminator == this.plugin.Config.DiscordOwnerName) 
+                return true;
+
+            if (errorMessageChannel == null) 
+                return false;
+
+            await SendGenericEmbed(errorMessageChannel, "You are not allowed to run commands for this bot.\n\nIf this is your bot, please use the \"/pdiscord\" command in-game to enter your username.", "Error", EmbedColorError);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Get the webhook for the respective channel, or create one if it doesn't exist.
+        /// </summary>
+        /// <param name="channel">The channel to get the webhook for</param>
+        /// <returns><see cref="IWebhook"/> for the respective channel.</returns>
+        private async Task<IWebhook> GetOrCreateWebhook(ISocketMessageChannel channel)
+        {
+            var textChannel = channel as SocketTextChannel;
+
+            if (!this.plugin.Config.ChannelConfigs.TryGetValue(channel.Id, out var channelConfig))
+                throw new ArgumentException("No configuration for channel.", nameof(channel));
+
+            var hook = await textChannel.GetWebhookAsync(channelConfig.WebhookId) ?? await textChannel.CreateWebhookAsync("FFXIV Bridge Worker");
+            
+            this.plugin.Config.ChannelConfigs[channel.Id].WebhookId = hook.Id;
+            this.plugin.Config.Save();
+
+            return hook;
+        }
+
+        public void Dispose()
+        {
+            this.MessageQueue.Stop();
+            this.socketClient?.Dispose();
+        }
+    }
+}
