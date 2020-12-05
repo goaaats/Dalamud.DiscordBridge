@@ -13,8 +13,8 @@ namespace Dalamud.DiscordBridge
         // Add any other properties or methods here.
         [JsonIgnore] private DalamudPluginInterface pluginInterface;
 
-        public string DiscordToken { get; set; }
-        public string DiscordOwnerName { get; set; }
+        public string DiscordToken { get; set; } = string.Empty;
+        public string DiscordOwnerName { get; set; } = string.Empty;
         public string DiscordBotPrefix { get; set; } = "!";
 
         public Dictionary<ulong, DiscordChannelConfig> ChannelConfigs = new Dictionary<ulong, DiscordChannelConfig>();

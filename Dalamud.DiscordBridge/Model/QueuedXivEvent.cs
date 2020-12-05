@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Dalamud.DiscordBridge.Model
 {
-    public class QueuedXivMessage
+    public abstract class QueuedXivEvent
     {
+
     }
 }

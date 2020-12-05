@@ -101,13 +101,6 @@ namespace Dalamud.DiscordBridge
                     }
                 },
                 {
-                    XivChatType.Ls5, new XivChatTypeInfo
-                    {
-                        Slug = "ls5",
-                        FancyName = "Linkshell 5"
-                    }
-                },
-                {
                     XivChatType.Ls6, new XivChatTypeInfo
                     {
                         Slug = "ls6",
