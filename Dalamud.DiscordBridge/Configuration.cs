@@ -15,7 +15,7 @@ namespace Dalamud.DiscordBridge
 
         public string DiscordToken { get; set; } = string.Empty;
         public string DiscordOwnerName { get; set; } = string.Empty;
-        public string DiscordBotPrefix { get; set; } = "!";
+        public string DiscordBotPrefix { get; set; } = "xl!";
 
         public Dictionary<ulong, DiscordChannelConfig> ChannelConfigs = new Dictionary<ulong, DiscordChannelConfig>();
 
