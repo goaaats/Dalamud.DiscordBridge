@@ -11,6 +11,7 @@ namespace Dalamud.DiscordBridge.Model
     {
         public List<XivChatType> ChatTypes { get; set; } = new List<XivChatType>();
         public ulong WebhookId { get; set; }
+        public bool IsBidirectional { get; set; }
 
         public void SetUnique(XivChatType type)
         {
@@ -28,15 +29,14 @@ namespace Dalamud.DiscordBridge.Model
 
         public void UnsetUnique(XivChatType type)
         {
-            SetUnique(new []{type});
+            UnsetUnique(new []{type});
         }
 
         public void UnsetUnique(IEnumerable<XivChatType> types)
         {
             foreach (var xivChatType in types)
             {
-                if (ChatTypes.Contains(xivChatType))
-                    ChatTypes.Remove(xivChatType);
+                ChatTypes.Remove(xivChatType);
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Dalamud.Configuration;
 using Dalamud.DiscordBridge.Model;
+using Dalamud.Game.Chat;
 using Dalamud.Plugin;
 using Newtonsoft.Json;
 
@@ -10,14 +11,14 @@ namespace Dalamud.DiscordBridge
     {
         public int Version { get; set; }
 
-        // Add any other properties or methods here.
         [JsonIgnore] private DalamudPluginInterface pluginInterface;
 
         public string DiscordToken { get; set; } = string.Empty;
         public string DiscordOwnerName { get; set; } = string.Empty;
         public string DiscordBotPrefix { get; set; } = "xl!";
 
-        public Dictionary<ulong, DiscordChannelConfig> ChannelConfigs = new Dictionary<ulong, DiscordChannelConfig>();
+        public Dictionary<ulong, DiscordChannelConfig> ChannelConfigs { get; set; } = new Dictionary<ulong, DiscordChannelConfig>();
+        public Dictionary<XivChatType, string> PrefixConfigs { get; set; } = new Dictionary<XivChatType, string>();
 
         public void Initialize(DalamudPluginInterface pluginInterface)
         {

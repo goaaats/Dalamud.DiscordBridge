@@ -251,6 +251,50 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setprefix" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 3)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify some chat kinds and a prefix to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    var kinds = args[1].Split(',');
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    if (args[2] == "none")
+                        args[2] = string.Empty;
+
+                    foreach (var selectedKind in kinds)
+                    {
+                        var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        this.plugin.Config.PrefixConfigs[type] = args[2];
+                    }
+
+                    this.plugin.Config.Save();
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! The following prefixes are set:\n\n```{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Prefix set", EmbedColorFine);
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "listchannel" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -375,7 +419,9 @@ namespace Dalamud.DiscordBridge
 
             var displayName = senderName + (string.IsNullOrEmpty(senderWorld) || string.IsNullOrEmpty(senderName)
                 ? ""
-                : $" on {senderWorld}");
+                : $"@{senderWorld}");
+
+            this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
 
             foreach (var channelConfig in applicableChannels)
             {
@@ -388,7 +434,7 @@ namespace Dalamud.DiscordBridge
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                await webhookClient.SendMessageAsync($"[{chatType.GetSlug()}] {message}",
+                await webhookClient.SendMessageAsync($"{prefix}**[{chatType.GetSlug()}]** {message}",
                     username: displayName, avatarUrl: avatarUrl);
             }
         }
