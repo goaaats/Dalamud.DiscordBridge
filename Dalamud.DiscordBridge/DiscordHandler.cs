@@ -21,6 +21,7 @@ namespace Dalamud.DiscordBridge
     public class DiscordHandler : IDisposable
     {
         private readonly DiscordSocketClient socketClient;
+        private readonly SpecialCharsHandler specialChars;
 
         public bool IsConnected => this.socketClient.ConnectionState == ConnectionState.Connected;
         public ulong UserId => this.socketClient.CurrentUser.Id;
@@ -84,6 +85,8 @@ namespace Dalamud.DiscordBridge
         {
             this.plugin = plugin;
 
+            this.specialChars = new SpecialCharsHandler();
+
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
 
             this.socketClient = new DiscordSocketClient();
@@ -119,13 +122,14 @@ namespace Dalamud.DiscordBridge
         private async Task SocketClientOnReady()
         {
             this.State = DiscordState.Ready;
+            await this.specialChars.TryFindEmote(this.socketClient);
 
             PluginLog.Verbose("DiscordHandler READY!!");
         }
 
         private async Task SocketClientOnMessageReceived(SocketMessage message)
         {
-            if (message.Author.IsBot)
+            if (message.Author.IsBot || message.Author.IsWebhook)
                 return;
 
             var args = message.Content.Split();
@@ -155,8 +159,9 @@ namespace Dalamud.DiscordBridge
                     var kinds = args[1].Split(',');
 
                     // Is there any chat type that's not recognized?
-                    if (kinds.Any(x =>
-                        XivChatTypeExtensions.TypeInfoDict.Any(y => y.Value.Slug != x) && x != "any"))
+                    if (kinds
+                        .Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
                     {
                         PluginLog.Verbose("Could not find kinds");
                         await SendGenericEmbed(message.Channel,
@@ -190,6 +195,8 @@ namespace Dalamud.DiscordBridge
                     await SendGenericEmbed(message.Channel,
                         $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
+
+                    return;
                 }
 
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetchannel" &&
@@ -240,6 +247,26 @@ namespace Dalamud.DiscordBridge
                     await SendGenericEmbed(message.Channel,
                         $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "listchannel" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    if (!this.plugin.Config.ChannelConfigs.TryGetValue(message.Channel.Id, out var config))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You didn't set up any channel kinds for this channel yet.\nPlease use the ``{this.plugin.Config.DiscordBotPrefix}setchannel`` command to do this.",
+                            "Error", EmbedColorError);
+                        return;
+                    }
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Chat kinds set", EmbedColorFine);
+
+                    return;
                 }
 
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "help")
@@ -272,6 +299,7 @@ namespace Dalamud.DiscordBridge
                     ;
                     PluginLog.Verbose(m.Id.ToString());
 
+                    return;
                 }
             }
             catch (Exception ex)
@@ -332,6 +360,8 @@ namespace Dalamud.DiscordBridge
 
             if (!applicableChannels.Any())
                 return;
+
+            message = this.specialChars.TransformToUnicode(message);
 
             var avatarUrl = Constant.LogoLink;
             try
