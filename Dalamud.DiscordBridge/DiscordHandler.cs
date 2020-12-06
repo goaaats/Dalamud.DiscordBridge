@@ -295,6 +295,24 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "toggledf" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    if (!this.plugin.Config.ChannelConfigs.TryGetValue(message.Channel.Id, out var config))
+                        config = new DiscordChannelConfig();
+
+                    config.IsContentFinder = !config.IsContentFinder;
+
+                    this.plugin.Config.ChannelConfigs[message.Channel.Id] = config;
+                    this.plugin.Config.Save();
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! This channel has been {(config.IsContentFinder ? "enabled" : "disabled")} from receiving Duty Finder notifications.",
+                        "Duty Finder set", EmbedColorFine);
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "listchannel" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -325,6 +343,9 @@ namespace Dalamud.DiscordBridge
                                                  "Format: ``!setchannel <kind1,kind2,...>``\n\n" +
                                                  $"See [this link for a list of all available chat kinds]({Constant.KindListLink}) or type ``any`` to enable it for all regular chat messages.")
                         //$"The following chat kinds are available:\n```all - All regular chat\n{XivChatTypeExtensions.TypeInfoDict.Select(x => $"{x.Value.Slug} - {x.Value.FancyName}").Aggregate((x, y) => x + "\n" + y)}```")
+                        .AddField("!unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
+                        .AddField("!listchannel", "List all chat kinds that are sent to this channel.")
+                        .AddField("!toggledf", "Enable or disable sending duty finder updates to this channel.")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
@@ -430,12 +451,50 @@ namespace Dalamud.DiscordBridge
                 if (socketChannel == null)
                 {
                     PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
-                    return;
+                    continue;
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
                 await webhookClient.SendMessageAsync($"{prefix}**[{chatType.GetSlug()}]** {message}",
                     username: displayName, avatarUrl: avatarUrl);
+            }
+        }
+
+        public async Task SendContentFinderEvent(QueuedContentFinderEvent cfEvent)
+        {
+            var applicableChannels =
+                this.plugin.Config.ChannelConfigs.Where(x => x.Value.IsContentFinder);
+
+            if (!applicableChannels.Any())
+                return;
+
+            var iconFolder = cfEvent.ContentFinderCondition.Image / 1000 * 1000;
+
+            var embedBuilder = new EmbedBuilder()
+                .WithCurrentTimestamp()
+                .WithColor(0x297c00)
+                .WithTitle("Duty is ready: " + cfEvent.ContentFinderCondition.Name)
+                .WithImageUrl("https://xivapi.com" + $"/i/{iconFolder}/{cfEvent.ContentFinderCondition.Image}.png")
+                .WithFooter(footer =>
+                {
+                    footer
+                        .WithText("For: " + this.plugin.Interface.ClientState.LocalPlayer.Name)
+                        .WithIconUrl(Constant.LogoLink);
+                });
+
+            foreach (var channelConfig in applicableChannels)
+            {
+                var socketChannel = this.socketClient.GetChannel(channelConfig.Key);
+
+                if (socketChannel == null)
+                {
+                    PluginLog.Error("Could not find channel {0} for cfc", channelConfig.Key);
+                    continue;
+                }
+
+                var webhookClient = await GetOrCreateWebhookClient(socketChannel);
+                await webhookClient.SendMessageAsync(embeds: new[] {embedBuilder.Build()},
+                    username: "Dalamud Discord Bridge", avatarUrl: Constant.LogoLink);
             }
         }
 
@@ -446,7 +505,8 @@ namespace Dalamud.DiscordBridge
         /// <returns><see cref="IWebhook"/> for the respective channel.</returns>
         private async Task<DiscordWebhookClient> GetOrCreateWebhookClient(SocketChannel channel)
         {
-            var textChannel = channel as SocketTextChannel;
+            if (!(channel is SocketTextChannel textChannel))
+                throw new ArgumentNullException(nameof(textChannel));
 
             if (!this.plugin.Config.ChannelConfigs.TryGetValue(channel.Id, out var channelConfig))
                 throw new ArgumentException("No configuration for channel.", nameof(channel));

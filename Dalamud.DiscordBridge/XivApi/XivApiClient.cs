@@ -35,10 +35,6 @@ namespace Dalamud.DiscordBridge.XivApi
             return null;
         }
 
-        public static async Task<JObject> GetContentFinderCondition(int contentFinderCondition) {
-            return await Get("ContentFinderCondition/" + contentFinderCondition);
-        }
-
         public static async Task<JObject> Search(string query, string indexes, int limit = 100, bool exact = false) {
             query = System.Net.WebUtility.UrlEncode(query);
 

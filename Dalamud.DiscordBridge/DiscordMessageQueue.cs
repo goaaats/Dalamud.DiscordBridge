@@ -98,6 +98,18 @@ namespace Dalamud.DiscordBridge
                             PluginLog.Error(e, "Could not send discord message.");
                         }
                     }
+
+                    if (resultEvent is QueuedContentFinderEvent cfEvent)
+                    {
+                        try
+                        {
+                            await this.plugin.Discord.SendContentFinderEvent(cfEvent);
+                        }
+                        catch (Exception e)
+                        {
+                            PluginLog.Error(e, "Could not send discord message.");
+                        }
+                    }
                 }
 
                 Thread.Yield();

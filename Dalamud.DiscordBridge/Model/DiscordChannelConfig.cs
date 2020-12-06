@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Dalamud.Game.Chat;
 
 namespace Dalamud.DiscordBridge.Model
@@ -12,6 +8,7 @@ namespace Dalamud.DiscordBridge.Model
         public List<XivChatType> ChatTypes { get; set; } = new List<XivChatType>();
         public ulong WebhookId { get; set; }
         public bool IsBidirectional { get; set; }
+        public bool IsContentFinder { get; set; }
 
         public void SetUnique(XivChatType type)
         {

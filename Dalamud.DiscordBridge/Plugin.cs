@@ -5,6 +5,7 @@ using Dalamud.Game.Chat;
 using Dalamud.Game.Chat.SeStringHandling;
 using Dalamud.Game.Chat.SeStringHandling.Payloads;
 using Dalamud.Plugin;
+using Lumina.Excel.GeneratedSheets;
 
 namespace Dalamud.DiscordBridge
 {
@@ -33,6 +34,7 @@ namespace Dalamud.DiscordBridge
             this.Interface.UiBuilder.OnBuildUi += this.ui.Draw;
 
             this.Interface.Framework.Gui.Chat.OnChatMessage += ChatOnOnChatMessage;
+            this.Interface.ClientState.CfPop += ClientStateOnCfPop;
 
             this.commandManager = new PluginCommandManager<Plugin>(this, this.Interface);
 
@@ -41,6 +43,14 @@ namespace Dalamud.DiscordBridge
                 this.Interface.Framework.Gui.Chat.PrintError("The Discord Bridge plugin was installed successfully." +
                                                               "Please use the \"/pdiscord\" command to set it up.");
             }
+        }
+
+        private void ClientStateOnCfPop(object sender, ContentFinderCondition e)
+        {
+            this.Discord.MessageQueue.Enqueue(new QueuedContentFinderEvent
+            {
+                ContentFinderCondition = e
+            });
         }
 
         private void ChatOnOnChatMessage(XivChatType type, uint senderid, ref SeString sender, ref SeString message, ref bool ishandled)
