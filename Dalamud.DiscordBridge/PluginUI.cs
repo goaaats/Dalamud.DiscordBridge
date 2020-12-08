@@ -21,7 +21,7 @@ namespace Dalamud.DiscordBridge
         private string username;
 
         private static Vector4 errorColor = new Vector4(1f, 0f, 0f, 1f);
-        private static Vector4 fineColor = new Vector4(1f, 0f, 0f, 1f);
+        private static Vector4 fineColor = new Vector4(0.337f, 1f, 0.019f, 1f);
 
         public void Show()
         {
