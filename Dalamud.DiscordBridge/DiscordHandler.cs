@@ -159,7 +159,7 @@ namespace Dalamud.DiscordBridge
                         return;
                     }
 
-                    var kinds = args[1].Split(',');
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
 
                     // Is there any chat type that's not recognized?
                     if (kinds
@@ -215,7 +215,7 @@ namespace Dalamud.DiscordBridge
                         return;
                     }
 
-                    var kinds = args[1].Split(',');
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
 
                     // Is there any chat type that's not recognized?
                     if (kinds.Any(x =>
@@ -267,7 +267,7 @@ namespace Dalamud.DiscordBridge
                         return;
                     }
 
-                    var kinds = args[1].Split(',');
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
 
                     // Is there any chat type that's not recognized?
                     if (kinds.Any(x =>
