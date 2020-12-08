@@ -51,64 +51,89 @@ namespace Dalamud.DiscordBridge
             {
                 if (this.eventQueue.TryDequeue(out var resultEvent))
                 {
-                    if (resultEvent is QueuedChatEvent chatEvent)
+                    try
                     {
-                        var playerLink = chatEvent.Sender.Payloads.FirstOrDefault(x => x.Type == PayloadType.Player) as PlayerPayload;
+                        if (resultEvent is QueuedChatEvent chatEvent)
+                        {
+                            var senderName = chatEvent.ChatType == XivChatType.TellOutgoing
+                                ? this.plugin.Interface.ClientState.LocalPlayer.Name
+                                : chatEvent.Sender.ToString();
+                            var senderWorld = string.Empty;
 
-                        string senderName;
-                        string senderWorld;
-
-                        if (this.plugin.Interface.ClientState.LocalPlayer != null) {
-                            if (playerLink == null)
+                            try
                             {
-                                // chat messages from the local player do not include a player link, and are just the raw name
-                                // but we should still track other instances to know if this is ever an issue otherwise
-
-                                // Special case 2 - When the local player talks in party/alliance, the name comes through as raw text,
-                                // but prefixed by their position number in the party (which for local player may always be 1)
-                                if (chatEvent.Sender.TextValue.EndsWith(this.plugin.Interface.ClientState.LocalPlayer.Name))
+                                if (this.plugin.Interface.ClientState.LocalPlayer != null)
                                 {
-                                    senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
+                                    var playerLink = chatEvent.Sender.Payloads.FirstOrDefault(x => x.Type == PayloadType.Player) as PlayerPayload;
+
+                                    if (playerLink == null)
+                                    {
+                                        // chat messages from the local player do not include a player link, and are just the raw name
+                                        // but we should still track other instances to know if this is ever an issue otherwise
+
+                                        // Special case 2 - When the local player talks in party/alliance, the name comes through as raw text,
+                                        // but prefixed by their position number in the party (which for local player may always be 1)
+                                        if (chatEvent.Sender.TextValue.EndsWith(this.plugin.Interface.ClientState
+                                            .LocalPlayer.Name))
+                                        {
+                                            senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
+                                        }
+                                        else
+                                        {
+                                            PluginLog.Error("playerLink was null. Sender: {0}",
+                                                BitConverter.ToString(chatEvent.Sender.Encode()));
+
+                                            senderName = chatEvent.ChatType == XivChatType.TellOutgoing
+                                                ? this.plugin.Interface.ClientState.LocalPlayer.Name
+                                                : chatEvent.Sender.TextValue;
+                                        }
+
+                                        senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData
+                                            .Name;
+                                    }
+                                    else
+                                    {
+                                        senderName = chatEvent.ChatType == XivChatType.TellOutgoing
+                                            ? this.plugin.Interface.ClientState.LocalPlayer.Name
+                                            : playerLink.PlayerName;
+                                        senderWorld = playerLink.World.Name;
+                                    }
                                 }
                                 else
                                 {
-                                    PluginLog.Error("playerLink was null. Sender: {0}", BitConverter.ToString(chatEvent.Sender.Encode()));
-
-                                    senderName = chatEvent.ChatType == XivChatType.TellOutgoing ? this.plugin.Interface.ClientState.LocalPlayer.Name : chatEvent.Sender.TextValue;
+                                    senderName = string.Empty;
+                                    senderWorld = string.Empty;
                                 }
-
-                                senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
                             }
-                            else
+                            catch(Exception ex)
                             {
-                                senderName = chatEvent.ChatType == XivChatType.TellOutgoing ? this.plugin.Interface.ClientState.LocalPlayer.Name : playerLink.PlayerName;
-                                senderWorld = playerLink.World.Name;
+                                PluginLog.Error(ex, "Could not deduce player name.");
                             }
-                        } else {
-                            senderName = string.Empty;
-                            senderWorld = string.Empty;
+                            
+
+                            try
+                            {
+                                await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName, senderWorld, chatEvent.ChatType);
+                            }
+                            catch (Exception e)
+                            {
+                                PluginLog.Error(e, "Could not send discord message.");
+                            }
                         }
 
-                        try
-                        {
-                            await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName, senderWorld, chatEvent.ChatType);
-                        }
-                        catch (Exception e)
-                        {
-                            PluginLog.Error(e, "Could not send discord message.");
-                        }
+                        if (resultEvent is QueuedContentFinderEvent cfEvent)
+                            try
+                            {
+                                await this.plugin.Discord.SendContentFinderEvent(cfEvent);
+                            }
+                            catch (Exception e)
+                            {
+                                PluginLog.Error(e, "Could not send discord message.");
+                            }
                     }
-
-                    if (resultEvent is QueuedContentFinderEvent cfEvent)
+                    catch (Exception e)
                     {
-                        try
-                        {
-                            await this.plugin.Discord.SendContentFinderEvent(cfEvent);
-                        }
-                        catch (Exception e)
-                        {
-                            PluginLog.Error(e, "Could not send discord message.");
-                        }
+                        PluginLog.Error(e, "Could not process event.");
                     }
                 }
 
