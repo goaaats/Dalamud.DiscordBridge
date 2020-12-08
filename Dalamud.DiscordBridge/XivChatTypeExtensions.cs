@@ -136,6 +136,20 @@ namespace Dalamud.DiscordBridge
                     }
                 },
                 {
+                    XivChatType.CustomEmote, new XivChatTypeInfo
+                    {
+                        Slug = "customemote",
+                        FancyName = "Custom Emote"
+                    }
+                },
+                {
+                    XivChatType.StandardEmote, new XivChatTypeInfo
+                    {
+                        Slug = "standardemote",
+                        FancyName = "Standard Emote"
+                    }
+                },
+                {
                     XivChatType.Yell, new XivChatTypeInfo
                     {
                         Slug = "yell",
@@ -244,5 +258,7 @@ namespace Dalamud.DiscordBridge
         }
 
         public static XivChatType GetBySlug(string slug) => TypeInfoDict.First(x => x.Value.Slug == slug).Key;
+        public static XivChatType GetByFancyName(string fancyname) => TypeInfoDict.First(x => x.Value.FancyName == fancyname).Key;
+
     }
 }

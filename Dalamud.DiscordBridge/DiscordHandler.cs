@@ -56,6 +56,8 @@ namespace Dalamud.DiscordBridge
             XivChatType.Ls7,
             XivChatType.Ls8,
             XivChatType.NoviceNetwork,
+            XivChatType.CustomEmote,
+            XivChatType.StandardEmote,
             XivChatType.CrossLinkShell1,
             XivChatType.CrossLinkShell2,
             XivChatType.CrossLinkShell3,
@@ -63,7 +65,8 @@ namespace Dalamud.DiscordBridge
             XivChatType.CrossLinkShell5,
             XivChatType.CrossLinkShell6,
             XivChatType.CrossLinkShell7,
-            XivChatType.CrossLinkShell8
+            XivChatType.CrossLinkShell8,
+            XivChatType.Echo,
         };
 
         /// <summary>
