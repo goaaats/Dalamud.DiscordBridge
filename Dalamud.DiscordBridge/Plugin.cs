@@ -72,6 +72,7 @@ namespace Dalamud.DiscordBridge
 
         [Command("/ddebug")]
         [HelpMessage("Show settings for the discord bridge plugin.")]
+        [DoNotShowInHelp]
         public void DebugCommand(string command, string args)
         {
             this.Discord.MessageQueue.Enqueue(new QueuedChatEvent
@@ -80,6 +81,17 @@ namespace Dalamud.DiscordBridge
                 Message = new SeString(new Payload[]{new TextPayload("Test Message"), }),
                 Sender = new SeString(new Payload[]{new TextPayload("Test Sender"), })
             });
+        }
+
+        [Command("/dprintlist")]
+        [HelpMessage("Show settings for the discord bridge plugin.")]
+        [DoNotShowInHelp]
+        public void ListCommand(string command, string args)
+        {
+            foreach (var keyValuePair in XivChatTypeExtensions.TypeInfoDict)
+            {
+                this.Interface.Framework.Gui.Chat.Print($"{keyValuePair.Key.GetSlug()} - {keyValuePair.Key.GetFancyName()}");
+            }
         }
 
         #region IDisposable Support

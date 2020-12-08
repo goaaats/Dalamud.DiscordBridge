@@ -81,13 +81,13 @@ namespace Dalamud.DiscordBridge
             {
                 PluginLog.Verbose("Reloading Discord...");
 
-                this.plugin.Discord.Dispose();
-                this.plugin.Discord = new DiscordHandler(this.plugin);
-                this.plugin.Discord.Start();
-
                 this.plugin.Config.DiscordToken = this.token;
                 this.plugin.Config.DiscordOwnerName = this.username;
                 this.plugin.Config.Save();
+
+                this.plugin.Discord.Dispose();
+                this.plugin.Discord = new DiscordHandler(this.plugin);
+                this.plugin.Discord.Start();
             }
         }
     }
