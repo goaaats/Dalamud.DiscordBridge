@@ -72,7 +72,7 @@ namespace Dalamud.DiscordBridge
 
             if (ImGui.Button("How does this work?"))
             {
-
+                Process.Start(Constant.HelpLink);
             }
 
             ImGui.SameLine();

@@ -346,6 +346,8 @@ namespace Dalamud.DiscordBridge
                         .AddField("!unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
                         .AddField("!listchannel", "List all chat kinds that are sent to this channel.")
                         .AddField("!toggledf", "Enable or disable sending duty finder updates to this channel.")
+                        .AddField("!setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
+                                                "Format: ``!setchannel <kind1,kind2,...> <prefix>``")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
