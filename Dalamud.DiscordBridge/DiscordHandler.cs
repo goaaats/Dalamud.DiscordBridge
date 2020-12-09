@@ -298,6 +298,57 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetprefix" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify some chat kinds and a prefix to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    foreach (var selectedKind in kinds)
+                    {
+                        var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        this.plugin.Config.PrefixConfigs.Remove(type);
+                    }
+
+                    this.plugin.Config.Save();
+
+                    if (this.plugin.Config.PrefixConfigs.Count() == 0 )
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"All prefixes have been removed.",
+                        "Prefix unset", EmbedColorFine);
+                    }
+                    else // this doesn't seem to trigger when there's only one entry left. I don't know why.
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The prefix for {XivChatTypeExtensions.GetBySlug(args[2])} has been removed.\n\n"
+                        + $"The following prefixes are still set:\n\n```{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Prefix unset", EmbedColorFine);
+                    }
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "toggledf" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -351,6 +402,8 @@ namespace Dalamud.DiscordBridge
                         .AddField("!toggledf", "Enable or disable sending duty finder updates to this channel.")
                         .AddField("!setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
                                                 "Format: ``!setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField("!unsetprefix", "Remove prefix set for a chat kind. \n"
+                        + "Format: ``!unsetprefix <kind>``")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
