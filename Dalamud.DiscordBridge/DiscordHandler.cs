@@ -11,6 +11,7 @@ using Dalamud.DiscordBridge.XivApi;
 using Dalamud.Game.Chat;
 using Dalamud.Plugin;
 using Discord;
+using Discord.Net.Providers.WS4Net;
 using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
@@ -92,7 +93,10 @@ namespace Dalamud.DiscordBridge
 
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
 
-            this.socketClient = new DiscordSocketClient();
+            this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
+            {
+                WebSocketProvider = WS4NetProvider.Instance,
+            });
             this.socketClient.Ready += SocketClientOnReady;
             this.socketClient.MessageReceived += SocketClientOnMessageReceived;
         }
