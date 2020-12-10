@@ -475,6 +475,49 @@ namespace Dalamud.DiscordBridge
             return false;
         }
 
+        public async Task SendItemSaleEvent(uint itemId, int amount, bool isHq, string message, XivChatType chatType)
+        {
+            var applicableChannels =
+                this.plugin.Config.ChannelConfigs.Where(x => x.Value.ChatTypes.Contains(chatType));
+
+            if (!applicableChannels.Any())
+                return;
+
+            message = this.specialChars.TransformToUnicode(message);
+
+            var avatarUrl = Constant.LogoLink;
+            var itemName = String.Empty;
+            PluginLog.Information($"Retainer sold item: {itemId}");
+            try
+            {
+                ItemResult res = XivApiClient.GetItem(itemId).GetAwaiter().GetResult();
+                avatarUrl = $"https://xivapi.com{res.Icon}";
+                itemName = res.Name;
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, "Cannot fetch XIVAPI item search.");
+            }
+
+            this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
+
+            foreach (var channelConfig in applicableChannels)
+            {
+                var socketChannel = this.socketClient.GetChannel(channelConfig.Key);
+
+                if (socketChannel == null)
+                {
+                    PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
+                    continue;
+                }
+
+                var webhookClient = await GetOrCreateWebhookClient(socketChannel);
+                await webhookClient.SendMessageAsync($"{prefix} {message}",
+                    username: $"Retainer sold {itemName}", avatarUrl: avatarUrl);
+            }
+
+        }
+
         public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType)
         {
             // Special case for outgoing tells, these should be sent under Incoming tells

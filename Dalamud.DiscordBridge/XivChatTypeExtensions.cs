@@ -232,8 +232,15 @@ namespace Dalamud.DiscordBridge
                         Slug = "e",
                         FancyName = "Echo"
                     }
-                }
+                },
                 // TODO: fellowships and shit, need dalamud update
+                {
+                    XivChatType.RetainerSale, new XivChatTypeInfo
+                    {
+                        Slug = "retainersale",
+                        FancyName = "Retainer Sale"
+                    }
+                }
             };
 
         public static XivChatTypeInfo GetInfo(this XivChatType type)

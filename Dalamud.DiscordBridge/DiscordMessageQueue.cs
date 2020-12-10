@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
@@ -22,6 +23,26 @@ namespace Dalamud.DiscordBridge
         private readonly Thread runnerThread;
 
         private readonly ConcurrentQueue<QueuedXivEvent> eventQueue = new ConcurrentQueue<QueuedXivEvent>();
+
+        private readonly Dictionary<ClientLanguage, Regex[]> retainerSaleRegexes = new Dictionary<ClientLanguage, Regex[]>() { {
+                ClientLanguage.Japanese, new Regex[] {
+                    new Regex(@"^(?:.+)マーケットに(?<origValue>[\d,.]+)ギルで出品した(?<item>.*)×(?<count>[\d,.]+)が売れ、(?<value>[\d,.]+)ギルを入手しました。$", RegexOptions.Compiled),
+                    new Regex(@"^(?:.+)マーケットに(?<origValue>[\d,.]+)ギルで出品した(?<item>.*)が売れ、(?<value>[\d,.]+)ギルを入手しました。$", RegexOptions.Compiled) }
+            }, {
+                ClientLanguage.English, new Regex[] {
+                    new Regex(@"^(?<item>.+) you put up for sale in the (?:.+) markets (?:have|has) sold for (?<value>[\d,.]+) gil \(after fees\)\.$", RegexOptions.Compiled)
+                }
+            }, {
+                ClientLanguage.German, new Regex[] {
+                    new Regex(@"^Dein Gehilfe hat (?<item>.+) auf dem Markt von (?:.+) für (?<value>[\d,.]+) Gil verkauft\.$", RegexOptions.Compiled),
+                    new Regex(@"^Dein Gehilfe hat (?<item>.+) auf dem Markt von (?:.+) verkauft und (?<value>[\d,.]+) Gil erhalten\.$", RegexOptions.Compiled)
+                }
+            }, {
+                ClientLanguage.French, new Regex[] {
+                    new Regex(@"^Un servant a vendu (?<item>.+) pour (?<value>[\d,.]+) gil à (?:.+)\.$", RegexOptions.Compiled)
+                }
+            }
+        };
 
         public DiscordMessageQueue(Plugin plugin)
         {
@@ -53,6 +74,40 @@ namespace Dalamud.DiscordBridge
                 {
                     try
                     {
+
+                        if (resultEvent is QueuedRetainerItemSaleEvent retainerSaleEvent)
+                        {
+                            try
+                            {
+
+                                //foreach (var regex in retainerSaleRegexes[this.plugin.Interface.ClientState.ClientLanguage])
+                                {
+                                    //var matchInfo = regex.Match(retainerSaleEvent.Message.TextValue);
+
+                                    var itemLink =
+                                    retainerSaleEvent.Message.Payloads.First(x => x.Type == PayloadType.Item) as ItemPayload;
+
+                                    if (itemLink == null)
+                                    {
+                                        PluginLog.Error("itemLink was null. Msg: {0}", BitConverter.ToString(retainerSaleEvent.Message.Encode()));
+                                        break;
+                                    }
+
+                                    //var valueInfo = matchInfo.Groups["value"];
+                                    // not sure if using a culture here would work correctly, so just strip symbols instead
+                                    //if (!valueInfo.Success || !int.TryParse(valueInfo.Value.Replace(",", "").Replace(".", ""), out var itemValue))
+                                    //    continue;
+
+                                    //SendItemSaleEvent(uint itemId, int amount, bool isHq, string message, XivChatType chatType)
+                                    await this.plugin.Discord.SendItemSaleEvent(itemLink.Item.RowId, 1, itemLink.IsHQ, retainerSaleEvent.Message.TextValue, retainerSaleEvent.ChatType);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                PluginLog.Error(e, "Could not send discord message.");
+                            }
+                        }
+
                         if (resultEvent is QueuedChatEvent chatEvent)
                         {
                             var senderName = chatEvent.ChatType == XivChatType.TellOutgoing
@@ -130,6 +185,8 @@ namespace Dalamud.DiscordBridge
                             {
                                 PluginLog.Error(e, "Could not send discord message.");
                             }
+
+                        
                     }
                     catch (Exception e)
                     {

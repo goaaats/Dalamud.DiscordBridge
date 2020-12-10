@@ -55,12 +55,25 @@ namespace Dalamud.DiscordBridge
 
         private void ChatOnOnChatMessage(XivChatType type, uint senderid, ref SeString sender, ref SeString message, ref bool ishandled)
         {
-            this.Discord.MessageQueue.Enqueue(new QueuedChatEvent
+            if (type == XivChatType.RetainerSale)
             {
-                ChatType = type,
-                Message = message,
-                Sender = sender
-            });
+                this.Discord.MessageQueue.Enqueue(new QueuedRetainerItemSaleEvent 
+                {
+                    ChatType = type,
+                    Message = message,
+                    Sender = sender
+                });
+            }
+            else
+            {
+                this.Discord.MessageQueue.Enqueue(new QueuedChatEvent
+                {
+                    ChatType = type,
+                    Message = message,
+                    Sender = sender
+                });
+            }
+            
         }
 
         [Command("/pdiscord")]
@@ -80,6 +93,30 @@ namespace Dalamud.DiscordBridge
                 ChatType = XivChatType.Say,
                 Message = new SeString(new Payload[]{new TextPayload("Test Message"), }),
                 Sender = new SeString(new Payload[]{new TextPayload("Test Sender"), })
+            });
+        }
+
+        [Command("/dsaledebug")]
+        [HelpMessage("Show settings for the discord bridge plugin.")]
+        [DoNotShowInHelp]
+        public void SaleDebugCommand(string command, string args)
+        {
+            // make a sample sale message. This is using Titanium Ore for an item
+            Item sampleitem = Interface.Data.GetExcelSheet<Item>().GetRow(12537);
+            SeString sameplesale = new SeString(new Payload[] {new TextPayload("The "), new ItemPayload(Interface.Data, sampleitem.RowId, true), new TextPayload(sampleitem.Name) ,new TextPayload(" you put up for sale in the Crystarium markets has sold for 777 gil (after fees).") });
+
+            // PluginLog.Information($"Trying to make a fake sale: {sameplesale.TextValue}");
+
+            this.Discord.MessageQueue.Enqueue(new QueuedRetainerItemSaleEvent
+            {
+                ChatType = XivChatType.RetainerSale,
+                Message = sameplesale,
+                Sender = new SeString(new Payload[] { new TextPayload("Test Sender"), })
+            });
+
+            Interface.Framework.Gui.Chat.PrintChat(new XivChatEntry
+            {
+                MessageBytes = sameplesale.Encode()
             });
         }
 

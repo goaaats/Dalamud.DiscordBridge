@@ -35,6 +35,21 @@ namespace Dalamud.DiscordBridge.XivApi
             return null;
         }
 
+        public static async Task<ItemResult> GetItem(uint itemId)
+        {
+            var res =  await Get($"Item/{itemId}", true);
+
+            // PluginLog.Information($"XIVAPI result: {res}");
+
+
+            return new ItemResult
+            {
+                Name = res?.Name,
+                Icon = res?.Icon,
+            };
+
+        }
+
         public static async Task<JObject> Search(string query, string indexes, int limit = 100, bool exact = false) {
             query = System.Net.WebUtility.UrlEncode(query);
 
