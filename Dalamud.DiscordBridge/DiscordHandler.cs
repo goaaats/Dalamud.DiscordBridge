@@ -397,17 +397,17 @@ namespace Dalamud.DiscordBridge
                         .WithTitle("Discord Bridge Help")
                         .WithDescription("You can use the following commands to set up the Discord bridge.")
                         .WithColor(new Color(EmbedColorFine))
-                        .AddField("!setchannel", "Select, which kinds of chat should arrive in this channel.\n" +
-                                                 "Format: ``!setchannel <kind1,kind2,...>``\n\n" +
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setchannel", "Select, which kinds of chat should arrive in this channel.\n" +
+                                                 $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...>``\n\n" +
                                                  $"See [this link for a list of all available chat kinds]({Constant.KindListLink}) or type ``any`` to enable it for all regular chat messages.")
                         //$"The following chat kinds are available:\n```all - All regular chat\n{XivChatTypeExtensions.TypeInfoDict.Select(x => $"{x.Value.Slug} - {x.Value.FancyName}").Aggregate((x, y) => x + "\n" + y)}```")
-                        .AddField("!unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
-                        .AddField("!listchannel", "List all chat kinds that are sent to this channel.")
-                        .AddField("!toggledf", "Enable or disable sending duty finder updates to this channel.")
-                        .AddField("!setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
-                                                "Format: ``!setchannel <kind1,kind2,...> <prefix>``")
-                        .AddField("!unsetprefix", "Remove prefix set for a chat kind. \n"
-                        + "Format: ``!unsetprefix <kind>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}listchannel", "List all chat kinds that are sent to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}toggledf", "Enable or disable sending duty finder updates to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
+                                                $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetprefix", "Remove prefix set for a chat kind. \n"
+                        + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetprefix <kind>``")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
