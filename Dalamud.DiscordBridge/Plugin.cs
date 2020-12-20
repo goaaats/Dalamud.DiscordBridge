@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Attributes;
 using Dalamud.DiscordBridge.Model;
 using Dalamud.Game.Chat;
@@ -27,8 +29,26 @@ namespace Dalamud.DiscordBridge
             this.Config = (Configuration)this.Interface.GetPluginConfig() ?? new Configuration();
             this.Config.Initialize(this.Interface);
 
+            
+
             this.Discord = new DiscordHandler(this);
-            this.Discord.Start();
+            //Task t = this.Discord.Start();
+            Task.Run(async () =>
+            {
+                await this.Discord.Start();
+            });
+
+            // try to force-reload it
+            if (!this.Discord.IsConnected)
+            {
+                PluginLog.Information("Forcing DiscordBridge to run with Task.Run()");
+                this.Discord.Dispose();
+                this.Discord = new DiscordHandler(this);
+                Task.Run(async () =>
+                {
+                    await this.Discord.Start();
+                });
+            }
 
             this.ui = new PluginUI(this);
             this.Interface.UiBuilder.OnBuildUi += this.ui.Draw;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -110,7 +110,7 @@ namespace Dalamud.DiscordBridge
 
                         if (resultEvent is QueuedChatEvent chatEvent)
                         {
-                            var senderName = chatEvent.ChatType == XivChatType.TellOutgoing
+                            var senderName = (chatEvent.ChatType == XivChatType.TellOutgoing || chatEvent.ChatType == XivChatType.Echo)
                                 ? this.plugin.Interface.ClientState.LocalPlayer.Name
                                 : chatEvent.Sender.ToString();
                             var senderWorld = string.Empty;

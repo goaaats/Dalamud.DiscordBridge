@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Configuration;
@@ -536,7 +536,8 @@ namespace Dalamud.DiscordBridge
             var avatarUrl = Constant.LogoLink;
             try
             {
-                avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                if (chatType != XivChatType.Echo)
+                    avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
             }
             catch (Exception ex)
             {
