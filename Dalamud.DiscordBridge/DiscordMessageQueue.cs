@@ -135,8 +135,36 @@ namespace Dalamud.DiscordBridge
                                         }
                                         else
                                         {
-                                            PluginLog.Error("playerLink was null. Sender: {0}",
-                                                BitConverter.ToString(chatEvent.Sender.Encode()));
+                                            // Franz is really tired of getting playerlink is null when there shouldn't be a player link for certain things
+                                            switch (chatEvent.ChatType)
+                                            {
+                                                case XivChatType.Echo:
+                                                    senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
+                                                    // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
+                                                    break;
+                                                case XivChatType.SystemMessage:
+                                                    break;
+                                                case XivChatType.SystemError:
+                                                    break;
+                                                case XivChatType.Debug:
+                                                    break;
+                                                case XivChatType.TellOutgoing:
+                                                    senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
+                                                    // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
+                                                    break;
+                                                case (XivChatType)61: // retainerspeak
+                                                    break;
+                                                default:
+                                                    if ((int)chatEvent.ChatType > 80) // stfu rando types
+                                                        break;
+                                                    PluginLog.Error("playerLink was null. Sender: {0}",
+                                                        BitConverter.ToString(chatEvent.Sender.Encode()));
+                                                    senderName = chatEvent.Sender.TextValue;
+                                                    PluginLog.Information($"Type: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} "
+                                                        + $"Message: {chatEvent.Message.TextValue}");
+                                                    break;
+                                            }
+                                            
 
                                             senderName = chatEvent.ChatType == XivChatType.TellOutgoing
                                                 ? this.plugin.Interface.ClientState.LocalPlayer.Name
@@ -145,13 +173,17 @@ namespace Dalamud.DiscordBridge
 
                                         senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData
                                             .Name;
+                                        // PluginLog.Information($"Playerlink is null: {senderWorld}");
                                     }
                                     else
                                     {
                                         senderName = chatEvent.ChatType == XivChatType.TellOutgoing
                                             ? this.plugin.Interface.ClientState.LocalPlayer.Name
                                             : playerLink.PlayerName;
-                                        senderWorld = playerLink.World.Name;
+                                        senderWorld = chatEvent.ChatType == XivChatType.TellOutgoing
+                                            ? this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name
+                                            : playerLink.World.Name;
+                                        // PluginLog.Information($"Playerlink was not null: {senderWorld}");
                                     }
                                 }
                                 else
