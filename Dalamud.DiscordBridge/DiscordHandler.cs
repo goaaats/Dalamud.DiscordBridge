@@ -200,7 +200,7 @@ namespace Dalamud.DiscordBridge
                     this.plugin.Config.Save();
 
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
 
                     return;
@@ -251,9 +251,15 @@ namespace Dalamud.DiscordBridge
                     this.plugin.Config.ChannelConfigs[message.Channel.Id] = config;
                     this.plugin.Config.Save();
 
+                    if (config.ChatTypes.Count() == 0)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"All chat kinds have been removed from this channel.",
+                        "Chat Kinds unset", EmbedColorFine);
+                    }
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
-                        "Chat kinds set", EmbedColorFine);
+                        $"OK! This channel will still receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Chat kinds unset", EmbedColorFine);
 
                     return;
                 }
@@ -295,8 +301,9 @@ namespace Dalamud.DiscordBridge
 
                     this.plugin.Config.Save();
 
+
                     await SendGenericEmbed(message.Channel,
-                        $"OK! The following prefixes are set:\n\n```{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! The following prefixes are set:\n\n```\n{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Prefix set", EmbedColorFine);
 
                     return;
@@ -346,7 +353,7 @@ namespace Dalamud.DiscordBridge
                     {
                         await SendGenericEmbed(message.Channel,
                         $"OK! The prefix for {XivChatTypeExtensions.GetBySlug(args[2])} has been removed.\n\n"
-                        + $"The following prefixes are still set:\n\n```{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        + $"The following prefixes are still set:\n\n```\n{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Prefix unset", EmbedColorFine);
                     }
 
@@ -383,7 +390,7 @@ namespace Dalamud.DiscordBridge
                     }
 
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
 
                     return;

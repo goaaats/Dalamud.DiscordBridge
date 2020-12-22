@@ -138,6 +138,16 @@ namespace Dalamud.DiscordBridge
                                             // Franz is really tired of getting playerlink is null when there shouldn't be a player link for certain things
                                             switch (chatEvent.ChatType)
                                             {
+                                                case XivChatType.Debug:
+                                                    break;
+                                                case XivChatType.Urgent:
+                                                    break;
+                                                case XivChatType.Notice:
+                                                    break;
+                                                case XivChatType.TellOutgoing:
+                                                    senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
+                                                    // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
+                                                    break;
                                                 case XivChatType.Echo:
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
@@ -146,16 +156,15 @@ namespace Dalamud.DiscordBridge
                                                     break;
                                                 case XivChatType.SystemError:
                                                     break;
-                                                case XivChatType.Debug:
+                                                case XivChatType.GatheringSystemMessage:
                                                     break;
-                                                case XivChatType.TellOutgoing:
-                                                    senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
-                                                    // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
+                                                case XivChatType.ErrorMessage:
                                                     break;
+                                                
                                                 case (XivChatType)61: // retainerspeak
                                                     break;
                                                 default:
-                                                    if ((int)chatEvent.ChatType > 80) // stfu rando types
+                                                    if ((int)chatEvent.ChatType > 107) // don't handle anything past CWLS8 for now
                                                         break;
                                                     PluginLog.Error("playerLink was null. Sender: {0}",
                                                         BitConverter.ToString(chatEvent.Sender.Encode()));
