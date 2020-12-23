@@ -96,6 +96,7 @@ namespace Dalamud.DiscordBridge
             this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
             {
                 WebSocketProvider = WS4NetProvider.Instance,
+                MessageCacheSize = 20, // hold onto the last 20 messages per channel in cache for duplicate checks
             });
             this.socketClient.Ready += SocketClientOnReady;
             this.socketClient.MessageReceived += SocketClientOnMessageReceived;
@@ -360,6 +361,34 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setduplicatems" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length == 1)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify a number in milliseconds to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    // Make sure that it's a number (or assume it is)
+                    int newDelay = int.Parse(args[1]);
+
+                    this.plugin.Config.DuplicateCheckMS = newDelay;
+                    this.plugin.Config.Save();
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! Any messages with the same content within the last **{newDelay}** milliseconds will be skipped, preventing duplicate posts.",
+                        "Duplicate Message Check", EmbedColorFine);
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "toggledf" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -411,6 +440,7 @@ namespace Dalamud.DiscordBridge
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}listchannel", "List all chat kinds that are sent to this channel.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}toggledf", "Enable or disable sending duty finder updates to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setduplicatems", "Set time in milliseconds that the bot will check to see if any past messages were the same. Default is 0 ms.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
                                                 $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetprefix", "Remove prefix set for a chat kind. \n"
@@ -494,7 +524,7 @@ namespace Dalamud.DiscordBridge
 
             var avatarUrl = Constant.LogoLink;
             var itemName = String.Empty;
-            PluginLog.Information($"Retainer sold item: {itemId}");
+            // PluginLog.Information($"Retainer sold item: {itemId}");
             try
             {
                 ItemResult res = XivApiClient.GetItem(itemId).GetAwaiter().GetResult();
@@ -568,7 +598,23 @@ namespace Dalamud.DiscordBridge
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                await webhookClient.SendMessageAsync($"{prefix}**[{chatType.GetSlug()}]** {message}",
+                var messageContent = $"{prefix}**[{chatType.GetSlug()}]** {message}";
+
+                // check for duplicates before sending
+                // straight up copied from the previous bot, but I have no way to test this myself.
+                var recentMessages = (socketChannel as SocketTextChannel).GetCachedMessages();
+                var recentMsg = recentMessages.FirstOrDefault(msg => msg.Content == messageContent);
+
+                
+                if (recentMsg != null)
+                {
+                    long msgDiff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - recentMsg.Timestamp.ToUnixTimeMilliseconds();
+                    PluginLog.Information($"[IN TESTING]\n DIFF:{msgDiff} Skipping duplicate message: {messageContent}");
+                    if (msgDiff < this.plugin.Config.DuplicateCheckMS)
+                        return;
+                }
+
+                await webhookClient.SendMessageAsync(messageContent,
                     username: displayName, avatarUrl: avatarUrl);
             }
         }

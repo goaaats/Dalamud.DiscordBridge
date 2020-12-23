@@ -11,6 +11,8 @@ namespace Dalamud.DiscordBridge
     {
         public int Version { get; set; }
 
+        public long DuplicateCheckMS { get; set; } = 0;
+
         [JsonIgnore] private DalamudPluginInterface pluginInterface;
 
         public string DiscordToken { get; set; } = string.Empty;
