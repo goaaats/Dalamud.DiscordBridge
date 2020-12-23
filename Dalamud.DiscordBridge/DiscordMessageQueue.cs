@@ -160,8 +160,9 @@ namespace Dalamud.DiscordBridge
                                                     break;
                                                 case XivChatType.ErrorMessage:
                                                     break;
-                                                
                                                 case (XivChatType)61: // retainerspeak
+                                                    break;
+                                                case (XivChatType)68: // battle NPCs
                                                     break;
                                                 default:
                                                     if ((int)chatEvent.ChatType > 107) // don't handle anything past CWLS8 for now
