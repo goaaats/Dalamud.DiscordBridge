@@ -32,23 +32,13 @@ namespace Dalamud.DiscordBridge
             
 
             this.Discord = new DiscordHandler(this);
-            //Task t = this.Discord.Start();
-            Task.Run(async () =>
+            // Task t = this.Discord.Start(); // bot won't start if we just have this
+            
+            Task.Run(async () => // makes the bot actually start
             {
                 await this.Discord.Start();
             });
-
-            // try to force-reload it
-            if (!this.Discord.IsConnected)
-            {
-                PluginLog.Information("Forcing DiscordBridge to run with Task.Run()");
-                this.Discord.Dispose();
-                this.Discord = new DiscordHandler(this);
-                Task.Run(async () =>
-                {
-                    await this.Discord.Start();
-                });
-            }
+            
 
             this.ui = new PluginUI(this);
             this.Interface.UiBuilder.OnBuildUi += this.ui.Draw;

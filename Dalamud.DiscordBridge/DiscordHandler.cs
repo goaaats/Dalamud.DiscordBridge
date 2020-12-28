@@ -16,6 +16,7 @@ using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Lumina.Excel.GeneratedSheets;
+using Lumina.Text;
 
 namespace Dalamud.DiscordBridge
 {
@@ -512,7 +513,7 @@ namespace Dalamud.DiscordBridge
             return false;
         }
 
-        public async Task SendItemSaleEvent(uint itemId, int amount, bool isHq, string message, XivChatType chatType)
+        public async Task SendItemSaleEvent(SeString name, string iconurl, uint itemId, string message, XivChatType chatType)
         {
             var applicableChannels =
                 this.plugin.Config.ChannelConfigs.Where(x => x.Value.ChatTypes.Contains(chatType));
@@ -522,19 +523,8 @@ namespace Dalamud.DiscordBridge
 
             message = this.specialChars.TransformToUnicode(message);
 
-            var avatarUrl = Constant.LogoLink;
-            var itemName = String.Empty;
-            // PluginLog.Information($"Retainer sold item: {itemId}");
-            try
-            {
-                ItemResult res = XivApiClient.GetItem(itemId).GetAwaiter().GetResult();
-                avatarUrl = $"https://xivapi.com{res.Icon}";
-                itemName = res.Name;
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Error(ex, "Cannot fetch XIVAPI item search.");
-            }
+            
+            PluginLog.Information($"Retainer sold itemID: {itemId} with iconurl: {iconurl}");
 
             this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
 
@@ -547,10 +537,10 @@ namespace Dalamud.DiscordBridge
                     PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
                     continue;
                 }
-
+                
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
                 await webhookClient.SendMessageAsync($"{prefix} {message}",
-                    username: $"Retainer sold {itemName}", avatarUrl: avatarUrl);
+                    username: $"Retainer sold {name}", avatarUrl: iconurl);
             }
 
         }
@@ -616,6 +606,12 @@ namespace Dalamud.DiscordBridge
 
                 await webhookClient.SendMessageAsync(messageContent,
                     username: displayName, avatarUrl: avatarUrl);
+
+                // the message to a list of recently sent messages. 
+                // If someone else sent the same thing at the same time
+                // both will need to be checked and the earlier timestamp kept
+                // while the newer one is removed
+                // refer to https://discord.com/channels/581875019861328007/684745859497590843/791207648619266060
             }
         }
 

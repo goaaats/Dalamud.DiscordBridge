@@ -87,10 +87,24 @@ namespace Dalamud.DiscordBridge
                                     var itemLink =
                                     retainerSaleEvent.Message.Payloads.First(x => x.Type == PayloadType.Item) as ItemPayload;
 
+                                    var avatarUrl = Constant.LogoLink;
+
                                     if (itemLink == null)
                                     {
                                         PluginLog.Error("itemLink was null. Msg: {0}", BitConverter.ToString(retainerSaleEvent.Message.Encode()));
                                         break;
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            ItemResult res = XivApiClient.GetItem(itemLink.Item.RowId).GetAwaiter().GetResult();
+                                            avatarUrl = $"https://xivapi.com{res.Icon}";
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            PluginLog.Error(ex, "Cannot fetch XIVAPI item search.");
+                                        }
                                     }
 
                                     //var valueInfo = matchInfo.Groups["value"];
@@ -99,7 +113,8 @@ namespace Dalamud.DiscordBridge
                                     //    continue;
 
                                     //SendItemSaleEvent(uint itemId, int amount, bool isHq, string message, XivChatType chatType)
-                                    await this.plugin.Discord.SendItemSaleEvent(itemLink.Item.RowId, 1, itemLink.IsHQ, retainerSaleEvent.Message.TextValue, retainerSaleEvent.ChatType);
+
+                                    await this.plugin.Discord.SendItemSaleEvent(itemLink.Item.Name, avatarUrl, itemLink.Item.RowId, retainerSaleEvent.Message.TextValue, retainerSaleEvent.ChatType);
                                 }
                             }
                             catch (Exception e)
