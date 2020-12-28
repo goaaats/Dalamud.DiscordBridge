@@ -96,6 +96,16 @@ namespace Dalamud.DiscordBridge
                                     }
                                     else
                                     {
+
+                                        // XIVAPI wants these padded with 0s in the front if under 6 digits
+                                        // at least if Titanium Ore testing is to be believed. 
+                                        var iconFolder = $"{itemLink.Item.Icon / 1000 * 1000}".PadLeft(6,'0');
+                                        var iconFile = $"{itemLink.Item.Icon}".PadLeft(6, '0');
+
+                                        avatarUrl = $"https://xivapi.com" + $"/i/{iconFolder}/{iconFile}.png";
+                                        /* 
+                                        // we don't need this anymore because the above should work
+                                        // but it doesn't hurt to have it commented out as a fallback for the future
                                         try
                                         {
                                             ItemResult res = XivApiClient.GetItem(itemLink.Item.RowId).GetAwaiter().GetResult();
@@ -105,6 +115,7 @@ namespace Dalamud.DiscordBridge
                                         {
                                             PluginLog.Error(ex, "Cannot fetch XIVAPI item search.");
                                         }
+                                        */
                                     }
 
                                     //var valueInfo = matchInfo.Groups["value"];
