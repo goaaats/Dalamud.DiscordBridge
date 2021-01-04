@@ -599,7 +599,7 @@ namespace Dalamud.DiscordBridge
                 if (recentMsg != null)
                 {
                     long msgDiff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - recentMsg.Timestamp.ToUnixTimeMilliseconds();
-                    PluginLog.Information($"[IN TESTING]\n DIFF:{msgDiff} Skipping duplicate message: {messageContent}");
+                    PluginLog.Log($"[IN TESTING]\n DIFF:{msgDiff} Skipping duplicate message: {messageContent}");
                     if (msgDiff < this.plugin.Config.DuplicateCheckMS)
                         return;
                 }
