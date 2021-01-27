@@ -175,29 +175,25 @@ namespace Dalamud.DiscordBridge
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
                                                     break;
                                                 case XivChatType.StandardEmote:
+                                                    playerLink = chatEvent.Message.Payloads.FirstOrDefault(x => x.Type == PayloadType.Player) as PlayerPayload;
+                                                    senderName = playerLink.PlayerName;
+                                                    senderWorld = playerLink.World.Name;
                                                     // we need to get the world here because cross-world people will be assumed local player's otherwise.
+                                                    /*
                                                     senderWorld = chatEvent.Message.TextValue.TrimStart(senderName.ToCharArray()).Split(' ')[0];
                                                     if (senderWorld.EndsWith("'s")) // fuck having to do this
                                                         senderWorld = senderWorld.Substring(0, senderWorld.Length - 2);
-
+                                                    */
                                                     break;
                                                 case XivChatType.Echo:
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
                                                     break;
-                                                case XivChatType.SystemMessage:
-                                                    break;
-                                                case XivChatType.SystemError:
-                                                    break;
-                                                case XivChatType.GatheringSystemMessage:
-                                                    break;
-                                                case XivChatType.ErrorMessage:
-                                                    break;
-                                                case (XivChatType)61: // retainerspeak
-                                                    break;
-                                                case (XivChatType)68: // battle NPCs
-                                                    break;
                                                 default:
+                                                    if ((int)chatEvent.ChatType >= 41 && (int)chatEvent.ChatType <= 55) //ignore a bunch of non-chat messages
+                                                        break;
+                                                    if ((int)chatEvent.ChatType >= 58 && (int)chatEvent.ChatType <= 70) //ignore a bunch of non-chat messages
+                                                        break;
                                                     if ((int)chatEvent.ChatType > 107) // don't handle anything past CWLS8 for now
                                                         break;
                                                     PluginLog.Error("playerLink was null. Sender: {0}",
