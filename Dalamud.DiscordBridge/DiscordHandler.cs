@@ -596,12 +596,16 @@ namespace Dalamud.DiscordBridge
                 var recentMsg = recentMessages.FirstOrDefault(msg => msg.Content == messageContent);
 
                 
-                if (recentMsg != null)
+                if (this.plugin.Config.DuplicateCheckMS > 0 && recentMsg != null)
                 {
                     long msgDiff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - recentMsg.Timestamp.ToUnixTimeMilliseconds();
-                    PluginLog.Log($"[IN TESTING]\n DIFF:{msgDiff} Skipping duplicate message: {messageContent}");
+                    
                     if (msgDiff < this.plugin.Config.DuplicateCheckMS)
+                    {
+                        PluginLog.Log($"[IN TESTING]\n DIFF:{msgDiff}ms Skipping duplicate message: {messageContent}");
                         return;
+                    }
+                        
                 }
 
                 await webhookClient.SendMessageAsync(messageContent,

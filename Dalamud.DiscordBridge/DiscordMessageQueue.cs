@@ -174,6 +174,10 @@ namespace Dalamud.DiscordBridge
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
                                                     break;
+                                                case XivChatType.StandardEmote:
+                                                    // we need to get the world here because cross-world people will be assumed local player's otherwise.
+                                                    senderWorld = chatEvent.Message.TextValue.TrimStart(senderName.ToCharArray()).Split(' ')[0];
+                                                    break;
                                                 case XivChatType.Echo:
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
@@ -202,14 +206,14 @@ namespace Dalamud.DiscordBridge
                                             }
                                             
 
-                                            senderName = chatEvent.ChatType == XivChatType.TellOutgoing
-                                                ? this.plugin.Interface.ClientState.LocalPlayer.Name
-                                                : chatEvent.Sender.TextValue;
+                                            
                                         }
 
-                                        senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData
-                                            .Name;
-                                        // PluginLog.Information($"Playerlink is null: {senderWorld}");
+                                        // only if we still need one
+                                        if (senderWorld.Equals(string.Empty))
+                                            senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
+
+                                        // PluginLog.Information($"FRANZDEBUGGINGNULL Playerlink is null: {senderName}@{senderWorld}");
                                     }
                                     else
                                     {
@@ -219,7 +223,7 @@ namespace Dalamud.DiscordBridge
                                         senderWorld = chatEvent.ChatType == XivChatType.TellOutgoing
                                             ? this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name
                                             : playerLink.World.Name;
-                                        // PluginLog.Information($"Playerlink was not null: {senderWorld}");
+                                        // PluginLog.Information($"FRANZDEBUGGING Playerlink was not null: {senderName}@{senderWorld}");
                                     }
                                 }
                                 else
