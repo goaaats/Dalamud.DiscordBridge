@@ -177,6 +177,9 @@ namespace Dalamud.DiscordBridge
                                                 case XivChatType.StandardEmote:
                                                     // we need to get the world here because cross-world people will be assumed local player's otherwise.
                                                     senderWorld = chatEvent.Message.TextValue.TrimStart(senderName.ToCharArray()).Split(' ')[0];
+                                                    if (senderWorld.EndsWith("'s")) // fuck having to do this
+                                                        senderWorld = senderWorld.Substring(0, senderWorld.Length - 2);
+
                                                     break;
                                                 case XivChatType.Echo:
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
