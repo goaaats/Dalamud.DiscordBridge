@@ -235,6 +235,13 @@ namespace Dalamud.DiscordBridge
                 },
                 // TODO: fellowships and shit, need dalamud update
                 {
+                    (XivChatType)61, new XivChatTypeInfo
+                    {
+                        Slug = "npctalk",
+                        FancyName = "NPC Talk"
+                    }
+                },
+                {
                     XivChatType.RetainerSale, new XivChatTypeInfo
                     {
                         Slug = "retainersale",

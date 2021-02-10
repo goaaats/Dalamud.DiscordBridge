@@ -141,6 +141,10 @@ namespace Dalamud.DiscordBridge
                                 : chatEvent.Sender.ToString();
                             var senderWorld = string.Empty;
 
+                            // for debugging. Make sure to comment this out for releases.
+                            PluginLog.Debug($"Type: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} "
+                                                        + $"Message: {chatEvent.Message.TextValue}");
+
                             try
                             {
                                 if (this.plugin.Interface.ClientState.LocalPlayer != null)
@@ -189,6 +193,10 @@ namespace Dalamud.DiscordBridge
                                                     senderName = this.plugin.Interface.ClientState.LocalPlayer.Name;
                                                     // senderWorld = this.plugin.Interface.ClientState.LocalPlayer.HomeWorld.GameData.Name;
                                                     break;
+                                                case (XivChatType)61: // NPC Talk
+                                                    senderName = chatEvent.Sender.TextValue;
+                                                    senderWorld = "NPC";
+                                                    break;
                                                 default:
                                                     if ((int)chatEvent.ChatType >= 41 && (int)chatEvent.ChatType <= 55) //ignore a bunch of non-chat messages
                                                         break;
@@ -196,11 +204,8 @@ namespace Dalamud.DiscordBridge
                                                         break;
                                                     if ((int)chatEvent.ChatType > 107) // don't handle anything past CWLS8 for now
                                                         break;
-                                                    PluginLog.Error("playerLink was null. Sender: {0}",
-                                                        BitConverter.ToString(chatEvent.Sender.Encode()));
+                                                    PluginLog.Error($"playerLink was null.\nChatType: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
                                                     senderName = chatEvent.Sender.TextValue;
-                                                    PluginLog.Information($"Type: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} "
-                                                        + $"Message: {chatEvent.Message.TextValue}");
                                                     break;
                                             }
                                             

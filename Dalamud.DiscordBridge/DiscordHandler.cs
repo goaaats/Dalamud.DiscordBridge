@@ -563,8 +563,16 @@ namespace Dalamud.DiscordBridge
             var avatarUrl = Constant.LogoLink;
             try
             {
-                if (chatType != XivChatType.Echo)
-                    avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                switch (chatType)
+                {
+                    case XivChatType.Echo:
+                        break;
+                    case (XivChatType)61: // npc talk
+                        break;
+                    default:
+                        avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                        break;
+                }                    
             }
             catch (Exception ex)
             {
