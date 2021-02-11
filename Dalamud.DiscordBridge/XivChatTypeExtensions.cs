@@ -242,6 +242,13 @@ namespace Dalamud.DiscordBridge
                     }
                 },
                 {
+                    (XivChatType)68, new XivChatTypeInfo
+                    {
+                        Slug = "npcannounce",
+                        FancyName = "NPC Announcement"
+                    }
+                },
+                {
                     XivChatType.RetainerSale, new XivChatTypeInfo
                     {
                         Slug = "retainersale",

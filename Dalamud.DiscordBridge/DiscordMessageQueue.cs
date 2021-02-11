@@ -197,6 +197,10 @@ namespace Dalamud.DiscordBridge
                                                     senderName = chatEvent.Sender.TextValue;
                                                     senderWorld = "NPC";
                                                     break;
+                                                case (XivChatType)68: // NPC Announcement
+                                                    senderName = chatEvent.Sender.TextValue;
+                                                    senderWorld = "NPC";
+                                                    break;
                                                 default:
                                                     if ((int)chatEvent.ChatType >= 41 && (int)chatEvent.ChatType <= 55) //ignore a bunch of non-chat messages
                                                         break;
