@@ -39,7 +39,7 @@ jobs:
         run: msbuild Dalamud.DiscordBridge.sln /p:Configuration=Release
 
       - name: Archive
-        run: Compress-Archive -Path Dalamud.DiscordBridge\bin\Release\* -DestinationPath Dalamud.DiscordBridge.zip
+        run: Compress-Archive -Path Dalamud.DiscordBridge\bin\Release\net472\* -DestinationPath Dalamud.DiscordBridge.zip
 
       - name: Create Release
         id: create_release
