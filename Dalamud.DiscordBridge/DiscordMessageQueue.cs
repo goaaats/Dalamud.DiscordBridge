@@ -204,11 +204,13 @@ namespace Dalamud.DiscordBridge
                                                 default:
                                                     if ((int)chatEvent.ChatType >= 41 && (int)chatEvent.ChatType <= 55) //ignore a bunch of non-chat messages
                                                         break;
-                                                    if ((int)chatEvent.ChatType >= 58 && (int)chatEvent.ChatType <= 70) //ignore a bunch of non-chat messages
+                                                    if ((int)chatEvent.ChatType >= 57 && (int)chatEvent.ChatType <= 70) //ignore a bunch of non-chat messages
+                                                        break;
+                                                    if ((int)chatEvent.ChatType >= 72 && (int)chatEvent.ChatType <= 100) // ignore a bunch of non-chat messages
                                                         break;
                                                     if ((int)chatEvent.ChatType > 107) // don't handle anything past CWLS8 for now
                                                         break;
-                                                    PluginLog.Error($"playerLink was null.\nChatType: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
+                                                    PluginLog.Error($"playerLink was null.\nChatType: {chatEvent.ChatType} ({(int)chatEvent.ChatType}) Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
                                                     senderName = chatEvent.Sender.TextValue;
                                                     break;
                                             }
