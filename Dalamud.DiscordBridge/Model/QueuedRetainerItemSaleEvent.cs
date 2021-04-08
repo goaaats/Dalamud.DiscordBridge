@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.XivApi;
-using Dalamud.Game.Chat;
-using Dalamud.Game.Chat.SeStringHandling;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace Dalamud.DiscordBridge.Model
 {

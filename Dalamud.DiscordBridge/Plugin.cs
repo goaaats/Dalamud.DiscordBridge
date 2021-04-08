@@ -3,9 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Attributes;
 using Dalamud.DiscordBridge.Model;
-using Dalamud.Game.Chat;
-using Dalamud.Game.Chat.SeStringHandling;
-using Dalamud.Game.Chat.SeStringHandling.Payloads;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
 using Lumina.Excel.GeneratedSheets;
 

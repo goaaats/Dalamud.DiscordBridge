@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 
 namespace Dalamud.DiscordBridge
 {

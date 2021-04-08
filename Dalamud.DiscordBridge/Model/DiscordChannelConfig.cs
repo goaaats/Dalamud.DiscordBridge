@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 
 namespace Dalamud.DiscordBridge.Model
 {

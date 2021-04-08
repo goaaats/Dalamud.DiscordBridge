@@ -8,10 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
 using Dalamud.DiscordBridge.XivApi;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Discord;
-using Discord.Net.Providers.WS4Net;
 using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
@@ -96,7 +95,6 @@ namespace Dalamud.DiscordBridge
 
             this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
             {
-                WebSocketProvider = WS4NetProvider.Instance,
                 MessageCacheSize = 20, // hold onto the last 20 messages per channel in cache for duplicate checks
             });
             this.socketClient.Ready += SocketClientOnReady;

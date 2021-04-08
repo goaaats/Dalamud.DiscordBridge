@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Dalamud.Configuration;
 using Dalamud.DiscordBridge.Model;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Newtonsoft.Json;
 
