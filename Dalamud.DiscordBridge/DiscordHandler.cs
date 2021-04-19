@@ -68,6 +68,7 @@ namespace Dalamud.DiscordBridge
             XivChatType.CrossLinkShell7,
             XivChatType.CrossLinkShell8,
             XivChatType.Echo,
+            XivChatType.SystemMessage,
         };
 
         /// <summary>
