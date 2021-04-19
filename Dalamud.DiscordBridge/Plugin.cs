@@ -65,6 +65,8 @@ namespace Dalamud.DiscordBridge
 
         private void ChatOnOnChatMessage(XivChatType type, uint senderid, ref SeString sender, ref SeString message, ref bool ishandled)
         {
+            if (ishandled) return; // don't process a message that's been handled.
+
             if (type == XivChatType.RetainerSale)
             {
                 this.Discord.MessageQueue.Enqueue(new QueuedRetainerItemSaleEvent 
