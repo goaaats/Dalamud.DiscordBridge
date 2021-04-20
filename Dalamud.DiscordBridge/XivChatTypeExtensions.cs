@@ -268,7 +268,7 @@ namespace Dalamud.DiscordBridge
                 {
                     (XivChatType)80, new XivChatTypeInfo
                     {
-                        Slug = "gmtelly",
+                        Slug = "gmtell",
                         FancyName = "GM Tell"
                     }
                 },
