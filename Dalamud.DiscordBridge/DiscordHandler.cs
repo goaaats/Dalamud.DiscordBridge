@@ -11,6 +11,7 @@ using Dalamud.DiscordBridge.XivApi;
 using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Discord;
+using Discord.Net.Providers.WS4Net;
 using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
@@ -94,8 +95,11 @@ namespace Dalamud.DiscordBridge
 
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
 
+
+
             this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
             {
+                WebSocketProvider = WS4NetProvider.Instance,
                 MessageCacheSize = 20, // hold onto the last 20 messages per channel in cache for duplicate checks
             });
             this.socketClient.Ready += SocketClientOnReady;
@@ -407,6 +411,34 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setcfprefix" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify a prefix to use, or type \"none\" if you want to remove it.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    if (args[1] == "none")
+                        args[1] = string.Empty;
+
+                    this.plugin.Config.CFPrefixConfig = args[1];
+
+                    this.plugin.Config.Save();
+
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! The following prefix was set:\n\n```\n{this.plugin.Config.CFPrefixConfig}```",
+                        "Prefix set", EmbedColorFine);
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "listchannel" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -443,6 +475,8 @@ namespace Dalamud.DiscordBridge
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}setduplicatems", "Set time in milliseconds that the bot will check to see if any past messages were the same. Default is 0 ms.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
                                                 $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setcfprefix", "Set a prefix for duty finder posts. Set it to `none` if you want to remove it.\n" +
+                                                $"Format: ``{this.plugin.Config.DiscordBotPrefix}setcfprefix <prefix>``")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetprefix", "Remove prefix set for a chat kind. \n"
                         + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetprefix <kind>``")
                         .AddField("Need more help?",
@@ -660,8 +694,10 @@ namespace Dalamud.DiscordBridge
                     continue;
                 }
 
+                var prefix = this.plugin.Config.CFPrefixConfig ?? "";
+
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                await webhookClient.SendMessageAsync(embeds: new[] {embedBuilder.Build()},
+                await webhookClient.SendMessageAsync($"{prefix}", embeds: new[] {embedBuilder.Build()},
                     username: "Dalamud Discord Bridge", avatarUrl: Constant.LogoLink);
             }
         }
