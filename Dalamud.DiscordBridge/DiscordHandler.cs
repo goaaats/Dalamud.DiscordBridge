@@ -611,7 +611,16 @@ namespace Dalamud.DiscordBridge
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, $"Cannot fetch XIVAPI character search for {senderName} on {senderWorld}");
+                if (string.IsNullOrEmpty(senderName))
+                {
+                    PluginLog.Error($"senderName was null or empty. How did we get this far?");
+                    senderName = "Bridge Error - sendername";
+                }
+                else
+                {
+                    PluginLog.Error(ex, $"Cannot fetch XIVAPI character search for {senderName} on {senderWorld}");
+                }
+                    
             }
 
             var displayName = senderName + (string.IsNullOrEmpty(senderWorld) || string.IsNullOrEmpty(senderName)
