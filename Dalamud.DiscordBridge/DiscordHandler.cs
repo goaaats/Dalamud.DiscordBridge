@@ -605,7 +605,12 @@ namespace Dalamud.DiscordBridge
                     case (XivChatType)68: // npc announce
                         break;
                     default:
-                        avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                        // don't even bother searching if it's gonna be invalid
+                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld))
+                        {
+                            avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                        }
+                        
                         break;
                 }                    
             }

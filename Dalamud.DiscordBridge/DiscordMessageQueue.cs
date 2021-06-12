@@ -238,7 +238,8 @@ namespace Dalamud.DiscordBridge
                                 }
                                 else
                                 {
-                                    PluginLog.Error($"Plugin interface LocalPlayer was null.\n"
+                                    // only do this one if it's debug
+                                    PluginLog.Debug($"Plugin interface LocalPlayer was null.\n"
                                         + $"ChatType: {chatEvent.ChatType} ({(int)chatEvent.ChatType}) Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
                                     senderName = string.Empty;
                                     senderWorld = string.Empty;
