@@ -17,6 +17,13 @@ namespace Dalamud.DiscordBridge
             new Dictionary<XivChatType, XivChatTypeInfo>
             {
                 {
+                    XivChatType.Debug, new XivChatTypeInfo
+                    {
+                        Slug = "debug",
+                        FancyName = "Debug Messages"
+                    }
+                },
+                {
                     XivChatType.Urgent, new XivChatTypeInfo
                     {
                         Slug = "urgent",
