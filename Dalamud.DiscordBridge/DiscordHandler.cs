@@ -314,6 +314,8 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetprefix" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -361,6 +363,114 @@ namespace Dalamud.DiscordBridge
                         + $"The following prefixes are still set:\n\n```\n{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Prefix unset", EmbedColorFine);
                     }
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setchattypename" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 3)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify one or more chat kinds and a custom name.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+                    var chatChannelOverride = string.Join(" ", args.Skip(2)).Trim('"');
+
+                    // PluginLog.Information($"arg1: {args[1]}; arg2: {chatChannelOverride}");
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    if (chatChannelOverride == "none")
+                    {
+                        foreach (var selectedKind in kinds)
+                        {
+                            var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                            this.plugin.Config.CustomSlugsConfigs[type] = type.GetSlug();
+                        }
+
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Custom chat type set", EmbedColorFine);
+                    }
+                    else
+                    {
+                        foreach (var selectedKind in kinds)
+                        {
+                            var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                            this.plugin.Config.CustomSlugsConfigs[type] = chatChannelOverride;
+                        }
+
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Custom chat type set", EmbedColorFine);
+                    }
+
+                    this.plugin.Config.Save();
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetchattypename" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    PluginLog.Information($"Unsetting custom type name for arg1: {args[1]}");
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+
+                    foreach (var selectedKind in kinds)
+                    {
+                        var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        this.plugin.Config.CustomSlugsConfigs[type] = type.GetSlug();
+                    }
+
+                    await SendGenericEmbed(message.Channel,
+                    $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                    "Custom chat type unset", EmbedColorFine);
+
+
+                    this.plugin.Config.Save();
 
                     return;
                 }
@@ -473,12 +583,21 @@ namespace Dalamud.DiscordBridge
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}listchannel", "List all chat kinds that are sent to this channel.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}toggledf", "Enable or disable sending duty finder updates to this channel.")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}setduplicatems", "Set time in milliseconds that the bot will check to see if any past messages were the same. Default is 0 ms.")
-                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
-                                                $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
-                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setcfprefix", "Set a prefix for duty finder posts. Set it to `none` if you want to remove it.\n" +
-                                                $"Format: ``{this.plugin.Config.DiscordBotPrefix}setcfprefix <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. "
+                            + $"This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setcfprefix", "Set a prefix for duty finder posts. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setcfprefix <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setchattypename ", "Set custom text for chat kinds. "
+                            + $"This can be an emoji or a string that will replace the short name of a chat kind for every chat message that will arrive with this chat kind. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchattypename  <kind1,kind2,...> <custom text>``")
                         .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetprefix", "Remove prefix set for a chat kind. \n"
-                        + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetprefix <kind>``")
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetprefix <kind>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetchattypename", "Remove custom name for a chat kind. \n"
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetchattypename <kind>``")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
@@ -634,6 +753,9 @@ namespace Dalamud.DiscordBridge
 
             this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
 
+            var chatTypeText = chatType.GetSlug();
+            this.plugin.Config.CustomSlugsConfigs.TryGetValue(chatType, out chatTypeText);
+
             foreach (var channelConfig in applicableChannels)
             {
                 var socketChannel = this.socketClient.GetChannel(channelConfig.Key);
@@ -645,7 +767,7 @@ namespace Dalamud.DiscordBridge
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                var messageContent = $"{prefix}**[{chatType.GetSlug()}]** {message}";
+                var messageContent = $"{prefix}**[{chatTypeText}]** {message}";
 
                 // check for duplicates before sending
                 // straight up copied from the previous bot, but I have no way to test this myself.

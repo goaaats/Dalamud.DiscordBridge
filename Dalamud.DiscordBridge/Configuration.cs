@@ -21,6 +21,8 @@ namespace Dalamud.DiscordBridge
 
         public Dictionary<ulong, DiscordChannelConfig> ChannelConfigs { get; set; } = new Dictionary<ulong, DiscordChannelConfig>();
         public Dictionary<XivChatType, string> PrefixConfigs { get; set; } = new Dictionary<XivChatType, string>();
+
+        public Dictionary<XivChatType, string> CustomSlugsConfigs { get; set; } = new Dictionary<XivChatType, string>();
         public string CFPrefixConfig { get; set; } = "";
 
         public void Initialize(DalamudPluginInterface pluginInterface)
