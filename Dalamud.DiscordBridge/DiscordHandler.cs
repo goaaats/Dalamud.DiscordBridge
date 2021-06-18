@@ -753,8 +753,8 @@ namespace Dalamud.DiscordBridge
 
             this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
 
-            var chatTypeText = chatType.GetSlug();
-            this.plugin.Config.CustomSlugsConfigs.TryGetValue(chatType, out chatTypeText);
+            var chatTypeText = this.plugin.Config.CustomSlugsConfigs.TryGetValue(chatType, out var x) ? x : chatType.GetSlug();
+            
 
             foreach (var channelConfig in applicableChannels)
             {
