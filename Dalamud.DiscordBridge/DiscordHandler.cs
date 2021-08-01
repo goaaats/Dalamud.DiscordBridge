@@ -729,7 +729,8 @@ namespace Dalamud.DiscordBridge
                         break;
                     default:
                         // don't even bother searching if it's gonna be invalid
-                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld))
+                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld) 
+                            && senderName != "Sonar" && senderName.Contains(" "))
                         {
                             avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
                         }
