@@ -767,6 +767,15 @@ namespace Dalamud.DiscordBridge
                 if (socketChannel == null)
                 {
                     PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
+
+                    var channelConfigs = this.plugin.Config.ChannelConfigs;
+                    channelConfigs.Remove(channelConfig.Key);
+                    this.plugin.Config.ChannelConfigs = channelConfigs;
+
+
+                    PluginLog.Log("Removing channel {0}'s config because it no longer exists or cannot be accessed.", channelConfig.Key);
+                    this.plugin.Config.Save();
+                    
                     continue;
                 }
 
