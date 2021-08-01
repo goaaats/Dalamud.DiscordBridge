@@ -657,6 +657,10 @@ namespace Dalamud.DiscordBridge
             if (user.Username + "#" + user.Discriminator == this.plugin.Config.DiscordOwnerName) 
                 return true;
 
+            if (ulong.TryParse(this.plugin.Config.DiscordOwnerName, out ulong parsed))
+                if (user.Id == parsed)
+                    return true;
+
             if (errorMessageChannel == null) 
                 return false;
 
