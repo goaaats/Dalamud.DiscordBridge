@@ -46,11 +46,11 @@ namespace Dalamud.DiscordBridge
                 {
                     switch (guildEmote.Name)
                     {
-                        case "xivAtl": this.hqEmote = $"<:xivAtl:{guildEmote.Id}>";
+                        case "xivAtl": this.atlEmote = $"<:xivAtl:{guildEmote.Id}>";
                             return;
                         case "xivAtr": this.atrEmote = $"<:xivAtr:{guildEmote.Id}>";
                             return;
-                        case "xivHq": this.atlEmote = $"<:xivHq:{guildEmote.Id}>";
+                        case "xivHq": this.hqEmote = $"<:xivHq:{guildEmote.Id}>";
                             return;
                     }
                 }

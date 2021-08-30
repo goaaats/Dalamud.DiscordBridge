@@ -9,7 +9,7 @@ using Dalamud.Game.Text.SeStringHandling;
 
 namespace Dalamud.DiscordBridge.Model
 {
-    public class QueuedChatEvent : QueuedXivEvent
+    public class QueuedRetainerItemSaleEvent : QueuedXivEvent
     {
         public SeString Message { get; set; }
         public SeString Sender { get; set; }

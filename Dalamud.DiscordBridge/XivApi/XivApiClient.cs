@@ -21,18 +21,52 @@ namespace Dalamud.DiscordBridge.XivApi
         /// <returns></returns>
         public static async Task<CharacterResult> GetCharacterSearch(string name, string world)
         {
-            var res = await Get("character/search" + $"?name={name}&server={world}");
-
-            if (res.Results.Count > 0)
+            try
             {
-                return new CharacterResult
+                dynamic res = await Get("character/search" + $"?name={name}&server={world}");
+
+                if (res?.Results?.Count > 0)
                 {
-                    AvatarUrl = res.Results[0].Avatar,
-                    LodestoneId = res.Results[0].ID
-                };
+                    for (int i = 0; i < res.Results.Count; i++)
+                    {
+                        string temp = res.Results[i].Name;
+                        if (temp.Equals(name))
+                        {
+                            return new CharacterResult
+                            {
+                                AvatarUrl = res.Results[i].Avatar,
+                                LodestoneId = res.Results[i].ID
+                            };
+                        }
+                    }
+                }
+
+
+                PluginLog.Error($"Couldn't find an icon for {name}@{world}");
             }
+            catch (Exception e)
+            {
+                PluginLog.Error($"Encountered an error when searching for {name}@{world}");
+                PluginLog.Error(e.ToString());
+            }
+            
 
             return null;
+        }
+
+        public static async Task<ItemResult> GetItem(uint itemId)
+        {
+            var res =  await Get($"Item/{itemId}", true);
+
+            // PluginLog.Information($"XIVAPI result: {res}");
+
+
+            return new ItemResult
+            {
+                Name = res?.Name,
+                Icon = res?.Icon,
+            };
+
         }
 
         public static async Task<JObject> Search(string query, string indexes, int limit = 100, bool exact = false) {

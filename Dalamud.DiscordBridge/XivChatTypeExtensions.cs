@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 
 namespace Dalamud.DiscordBridge
 {
@@ -16,6 +16,13 @@ namespace Dalamud.DiscordBridge
         public static readonly IReadOnlyDictionary<XivChatType, XivChatTypeInfo> TypeInfoDict =
             new Dictionary<XivChatType, XivChatTypeInfo>
             {
+                {
+                    XivChatType.Debug, new XivChatTypeInfo
+                    {
+                        Slug = "debug",
+                        FancyName = "Debug Messages"
+                    }
+                },
                 {
                     XivChatType.Urgent, new XivChatTypeInfo
                     {
@@ -232,8 +239,144 @@ namespace Dalamud.DiscordBridge
                         Slug = "e",
                         FancyName = "Echo"
                     }
-                }
+                },
+                {
+                    XivChatType.SystemMessage, new XivChatTypeInfo
+                    {
+                        Slug = "sysmsg",
+                        FancyName = "SystemMessage"
+                    }
+                },
                 // TODO: fellowships and shit, need dalamud update
+
+                // Custom types not defined in Dalamud
+                {
+                    (XivChatType)61, new XivChatTypeInfo
+                    {
+                        Slug = "npctalk",
+                        FancyName = "NPC Talk"
+                    }
+                },
+                {
+                    (XivChatType)68, new XivChatTypeInfo
+                    {
+                        Slug = "npcannounce",
+                        FancyName = "NPC Announcement"
+                    }
+                },
+                {
+                    XivChatType.RetainerSale, new XivChatTypeInfo
+                    {
+                        Slug = "retainersale",
+                        FancyName = "Retainer Sale"
+                    }
+                },
+                // Special handling for GM types
+                {
+                    (XivChatType)80, new XivChatTypeInfo
+                    {
+                        Slug = "gmtell",
+                        FancyName = "GM Tell"
+                    }
+                },
+                {
+                    (XivChatType)81, new XivChatTypeInfo
+                    {
+                        Slug = "gmsay",
+                        FancyName = "Say"
+                    }
+                },
+                {
+                    (XivChatType)82, new XivChatTypeInfo
+                    {
+                        Slug = "gmshout",
+                        FancyName = "GM Shout"
+                    }
+                },
+                {
+                    (XivChatType)83, new XivChatTypeInfo
+                    {
+                        Slug = "gmyell",
+                        FancyName = "GM Yell"
+                    }
+                },
+                {
+                    (XivChatType)84, new XivChatTypeInfo
+                    {
+                        Slug = "gmp",
+                        FancyName = "GM Party Chat"
+                    }
+                },
+                {
+                    (XivChatType)85, new XivChatTypeInfo
+                    {
+                        Slug = "gmfc",
+                        FancyName = "GM Free Company"
+                    }
+                },
+                {
+                    (XivChatType)86, new XivChatTypeInfo
+                    {
+                        Slug = "gmls1",
+                        FancyName = "GM Linkshell 1"
+                    }
+                },
+                {
+                    (XivChatType)87, new XivChatTypeInfo
+                    {
+                        Slug = "gmls2",
+                        FancyName = "GM Linkshell 2"
+                    }
+                },
+                {
+                    (XivChatType)88, new XivChatTypeInfo
+                    {
+                        Slug = "gmls3",
+                        FancyName = "GM Linkshell 3"
+                    }
+                },
+                {
+                    (XivChatType)89, new XivChatTypeInfo
+                    {
+                        Slug = "gmls4",
+                        FancyName = "GM Linkshell 4"
+                    }
+                },
+                {
+                    (XivChatType)90, new XivChatTypeInfo
+                    {
+                        Slug = "gmls5",
+                        FancyName = "GM Linkshell 5"
+                    }
+                },
+                {
+                    (XivChatType)91, new XivChatTypeInfo
+                    {
+                        Slug = "gmls6",
+                        FancyName = "GM Linkshell 6"
+                    }
+                },
+                {
+                    (XivChatType)92, new XivChatTypeInfo
+                    {
+                        Slug = "gmls7",
+                        FancyName = "GM Linkshell 7"
+                    }
+                },
+                {
+                    (XivChatType)93, new XivChatTypeInfo
+                    {
+                        Slug = "gmls8",
+                        FancyName = "GM Linkshell 8"
+                    }
+                },
+                {
+                    (XivChatType)94, new XivChatTypeInfo
+                    {
+                        Slug = "gmnn",
+                        FancyName = "GM Novice Network"
+                    }
+                }
             };
 
         public static XivChatTypeInfo GetInfo(this XivChatType type)

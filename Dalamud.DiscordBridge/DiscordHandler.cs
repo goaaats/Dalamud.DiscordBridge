@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Configuration;
@@ -8,13 +8,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
 using Dalamud.DiscordBridge.XivApi;
-using Dalamud.Game.Chat;
+using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Discord;
+using Discord.Net.Providers.WS4Net;
 using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Lumina.Excel.GeneratedSheets;
+using Lumina.Text;
 
 namespace Dalamud.DiscordBridge
 {
@@ -67,6 +69,7 @@ namespace Dalamud.DiscordBridge
             XivChatType.CrossLinkShell7,
             XivChatType.CrossLinkShell8,
             XivChatType.Echo,
+            XivChatType.SystemMessage,
         };
 
         /// <summary>
@@ -92,7 +95,13 @@ namespace Dalamud.DiscordBridge
 
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
 
-            this.socketClient = new DiscordSocketClient();
+
+
+            this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
+            {
+                WebSocketProvider = WS4NetProvider.Instance,
+                MessageCacheSize = 20, // hold onto the last 20 messages per channel in cache for duplicate checks
+            });
             this.socketClient.Ready += SocketClientOnReady;
             this.socketClient.MessageReceived += SocketClientOnMessageReceived;
         }
@@ -196,7 +205,7 @@ namespace Dalamud.DiscordBridge
                     this.plugin.Config.Save();
 
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
 
                     return;
@@ -247,9 +256,15 @@ namespace Dalamud.DiscordBridge
                     this.plugin.Config.ChannelConfigs[message.Channel.Id] = config;
                     this.plugin.Config.Save();
 
+                    if (config.ChatTypes.Count() == 0)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"All chat kinds have been removed from this channel.",
+                        "Chat Kinds unset", EmbedColorFine);
+                    }
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
-                        "Chat kinds set", EmbedColorFine);
+                        $"OK! This channel will still receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetSlug()} - {x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Chat kinds unset", EmbedColorFine);
 
                     return;
                 }
@@ -291,9 +306,199 @@ namespace Dalamud.DiscordBridge
 
                     this.plugin.Config.Save();
 
+
                     await SendGenericEmbed(message.Channel,
-                        $"OK! The following prefixes are set:\n\n```{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! The following prefixes are set:\n\n```\n{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Prefix set", EmbedColorFine);
+
+                    return;
+                }
+
+
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetprefix" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify some chat kinds and a prefix to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    foreach (var selectedKind in kinds)
+                    {
+                        var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        this.plugin.Config.PrefixConfigs.Remove(type);
+                    }
+
+                    this.plugin.Config.Save();
+
+                    if (this.plugin.Config.PrefixConfigs.Count() == 0 )
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"All prefixes have been removed.",
+                        "Prefix unset", EmbedColorFine);
+                    }
+                    else // this doesn't seem to trigger when there's only one entry left. I don't know why.
+                    {
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The prefix for {XivChatTypeExtensions.GetBySlug(args[2])} has been removed.\n\n"
+                        + $"The following prefixes are still set:\n\n```\n{this.plugin.Config.PrefixConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Prefix unset", EmbedColorFine);
+                    }
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setchattypename" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 3)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify one or more chat kinds and a custom name.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+                    var chatChannelOverride = string.Join(" ", args.Skip(2)).Trim('"');
+
+                    // PluginLog.Information($"arg1: {args[1]}; arg2: {chatChannelOverride}");
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    if (chatChannelOverride == "none")
+                    {
+                        foreach (var selectedKind in kinds)
+                        {
+                            var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                            this.plugin.Config.CustomSlugsConfigs[type] = type.GetSlug();
+                        }
+
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Custom chat type set", EmbedColorFine);
+                    }
+                    else
+                    {
+                        foreach (var selectedKind in kinds)
+                        {
+                            var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                            this.plugin.Config.CustomSlugsConfigs[type] = chatChannelOverride;
+                        }
+
+                        await SendGenericEmbed(message.Channel,
+                        $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                        "Custom chat type set", EmbedColorFine);
+                    }
+
+                    this.plugin.Config.Save();
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "unsetchattypename" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    PluginLog.Information($"Unsetting custom type name for arg1: {args[1]}");
+
+                    // Is there any chat type that's not recognized?
+                    if (kinds.Any(x =>
+                        XivChatTypeExtensions.TypeInfoDict.All(y => y.Value.Slug != x) && x != "any"))
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"One or more of the chat kinds you specified could not be found.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+
+                    foreach (var selectedKind in kinds)
+                    {
+                        var type = XivChatTypeExtensions.GetBySlug(selectedKind);
+                        this.plugin.Config.CustomSlugsConfigs[type] = type.GetSlug();
+                    }
+
+                    await SendGenericEmbed(message.Channel,
+                    $"OK! The following custom chat type names have been set:\n\n```\n{this.plugin.Config.CustomSlugsConfigs.Select(x => $"{x.Key.GetFancyName()} - {x.Value}").Aggregate((x, y) => x + "\n" + y)}```",
+                    "Custom chat type unset", EmbedColorFine);
+
+
+                    this.plugin.Config.Save();
+
+                    return;
+                }
+
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setduplicatems" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length == 1)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify a number in milliseconds to use.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    var kinds = args[1].Split(',').Select(x => x.ToLower());
+
+                    // Make sure that it's a number (or assume it is)
+                    int newDelay = int.Parse(args[1]);
+
+                    this.plugin.Config.DuplicateCheckMS = newDelay;
+                    this.plugin.Config.Save();
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! Any messages with the same content within the last **{newDelay}** milliseconds will be skipped, preventing duplicate posts.",
+                        "Duplicate Message Check", EmbedColorFine);
 
                     return;
                 }
@@ -316,6 +521,34 @@ namespace Dalamud.DiscordBridge
                     return;
                 }
 
+                if (args[0] == this.plugin.Config.DiscordBotPrefix + "setcfprefix" &&
+                    await EnsureOwner(message.Author, message.Channel))
+                {
+                    // Are there parameters?
+                    if (args.Length < 2)
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"You need to specify a prefix to use, or type \"none\" if you want to remove it.\nCheck the ``{this.plugin.Config.DiscordBotPrefix}help`` command for more information.",
+                            "Error", EmbedColorError);
+
+                        return;
+                    }
+
+                    if (args[1] == "none")
+                        args[1] = string.Empty;
+
+                    this.plugin.Config.CFPrefixConfig = args[1];
+
+                    this.plugin.Config.Save();
+
+
+                    await SendGenericEmbed(message.Channel,
+                        $"OK! The following prefix was set:\n\n```\n{this.plugin.Config.CFPrefixConfig}```",
+                        "Prefix set", EmbedColorFine);
+
+                    return;
+                }
+
                 if (args[0] == this.plugin.Config.DiscordBotPrefix + "listchannel" &&
                     await EnsureOwner(message.Author, message.Channel))
                 {
@@ -328,7 +561,7 @@ namespace Dalamud.DiscordBridge
                     }
 
                     await SendGenericEmbed(message.Channel,
-                        $"OK! This channel has been set to receive the following chat kinds:\n\n```{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
+                        $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
 
                     return;
@@ -342,15 +575,29 @@ namespace Dalamud.DiscordBridge
                         .WithTitle("Discord Bridge Help")
                         .WithDescription("You can use the following commands to set up the Discord bridge.")
                         .WithColor(new Color(EmbedColorFine))
-                        .AddField("!setchannel", "Select, which kinds of chat should arrive in this channel.\n" +
-                                                 "Format: ``!setchannel <kind1,kind2,...>``\n\n" +
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setchannel", "Select, which kinds of chat should arrive in this channel.\n" +
+                                                 $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...>``\n\n" +
                                                  $"See [this link for a list of all available chat kinds]({Constant.KindListLink}) or type ``any`` to enable it for all regular chat messages.")
                         //$"The following chat kinds are available:\n```all - All regular chat\n{XivChatTypeExtensions.TypeInfoDict.Select(x => $"{x.Value.Slug} - {x.Value.FancyName}").Aggregate((x, y) => x + "\n" + y)}```")
-                        .AddField("!unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
-                        .AddField("!listchannel", "List all chat kinds that are sent to this channel.")
-                        .AddField("!toggledf", "Enable or disable sending duty finder updates to this channel.")
-                        .AddField("!setprefix", "Set a prefix for chat kinds. This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind.\n" +
-                                                "Format: ``!setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetchannel", "Works like the previous command, but removes kinds of chat from the list of kinds that are sent to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}listchannel", "List all chat kinds that are sent to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}toggledf", "Enable or disable sending duty finder updates to this channel.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setduplicatems", "Set time in milliseconds that the bot will check to see if any past messages were the same. Default is 0 ms.")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setprefix", "Set a prefix for chat kinds. "
+                            + $"This can be an emoji or a string that will be prepended to every chat message that will arrive with this chat kind. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchannel <kind1,kind2,...> <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setcfprefix", "Set a prefix for duty finder posts. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setcfprefix <prefix>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}setchattypename ", "Set custom text for chat kinds. "
+                            + $"This can be an emoji or a string that will replace the short name of a chat kind for every chat message that will arrive with this chat kind. "
+                            + $"You can also set it to `none` if you want to remove it.\n" 
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}setchattypename  <kind1,kind2,...> <custom text>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetprefix", "Remove prefix set for a chat kind. \n"
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetprefix <kind>``")
+                        .AddField($"{this.plugin.Config.DiscordBotPrefix}unsetchattypename", "Remove custom name for a chat kind. \n"
+                            + $"Format: ``{this.plugin.Config.DiscordBotPrefix}unsetchattypename <kind>``")
                         .AddField("Need more help?",
                             $"You can [read the full step-by-step guide]({Constant.HelpLink}) or [join our Discord server]({Constant.DiscordJoinLink}) to ask for help.")
                         .WithFooter(footer =>
@@ -410,12 +657,48 @@ namespace Dalamud.DiscordBridge
             if (user.Username + "#" + user.Discriminator == this.plugin.Config.DiscordOwnerName) 
                 return true;
 
+            if (ulong.TryParse(this.plugin.Config.DiscordOwnerName, out ulong parsed))
+                if (user.Id == parsed)
+                    return true;
+
             if (errorMessageChannel == null) 
                 return false;
 
             await SendGenericEmbed(errorMessageChannel, "You are not allowed to run commands for this bot.\n\nIf this is your bot, please use the \"/pdiscord\" command in-game to enter your username.", "Error", EmbedColorError);
 
             return false;
+        }
+
+        public async Task SendItemSaleEvent(SeString name, string iconurl, uint itemId, string message, XivChatType chatType)
+        {
+            var applicableChannels =
+                this.plugin.Config.ChannelConfigs.Where(x => x.Value.ChatTypes.Contains(chatType));
+
+            if (!applicableChannels.Any())
+                return;
+
+            message = this.specialChars.TransformToUnicode(message);
+
+            
+            PluginLog.Information($"Retainer sold itemID: {itemId} with iconurl: {iconurl}");
+
+            this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
+
+            foreach (var channelConfig in applicableChannels)
+            {
+                var socketChannel = this.socketClient.GetChannel(channelConfig.Key);
+
+                if (socketChannel == null)
+                {
+                    PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
+                    continue;
+                }
+                
+                var webhookClient = await GetOrCreateWebhookClient(socketChannel);
+                await webhookClient.SendMessageAsync($"{prefix} {message}",
+                    username: $"Retainer sold {name}", avatarUrl: iconurl);
+            }
+
         }
 
         public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType)
@@ -436,11 +719,37 @@ namespace Dalamud.DiscordBridge
             var avatarUrl = Constant.LogoLink;
             try
             {
-                avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                switch (chatType)
+                {
+                    case XivChatType.Echo:
+                        break;
+                    case (XivChatType)61: // npc talk
+                        break;
+                    case (XivChatType)68: // npc announce
+                        break;
+                    default:
+                        // don't even bother searching if it's gonna be invalid
+                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld) 
+                            && senderName != "Sonar" && senderName.Contains(" "))
+                        {
+                            avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                        }
+                        
+                        break;
+                }                    
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, "Cannot fetch XIVAPI character search.");
+                if (string.IsNullOrEmpty(senderName))
+                {
+                    PluginLog.Error($"senderName was null or empty. How did we get this far?");
+                    senderName = "Bridge Error - sendername";
+                }
+                else
+                {
+                    PluginLog.Error(ex, $"Cannot fetch XIVAPI character search for {senderName} on {senderWorld}");
+                }
+                    
             }
 
             var displayName = senderName + (string.IsNullOrEmpty(senderWorld) || string.IsNullOrEmpty(senderName)
@@ -449,6 +758,9 @@ namespace Dalamud.DiscordBridge
 
             this.plugin.Config.PrefixConfigs.TryGetValue(chatType, out var prefix);
 
+            var chatTypeText = this.plugin.Config.CustomSlugsConfigs.TryGetValue(chatType, out var x) ? x : chatType.GetSlug();
+            
+
             foreach (var channelConfig in applicableChannels)
             {
                 var socketChannel = this.socketClient.GetChannel(channelConfig.Key);
@@ -456,12 +768,47 @@ namespace Dalamud.DiscordBridge
                 if (socketChannel == null)
                 {
                     PluginLog.Error("Could not find channel {0} for {1}", channelConfig.Key, chatType);
+
+                    var channelConfigs = this.plugin.Config.ChannelConfigs;
+                    channelConfigs.Remove(channelConfig.Key);
+                    this.plugin.Config.ChannelConfigs = channelConfigs;
+
+
+                    PluginLog.Log("Removing channel {0}'s config because it no longer exists or cannot be accessed.", channelConfig.Key);
+                    this.plugin.Config.Save();
+                    
                     continue;
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                await webhookClient.SendMessageAsync($"{prefix}**[{chatType.GetSlug()}]** {message}",
+                var messageContent = $"{prefix}**[{chatTypeText}]** {message}";
+
+                // check for duplicates before sending
+                // straight up copied from the previous bot, but I have no way to test this myself.
+                var recentMessages = (socketChannel as SocketTextChannel).GetCachedMessages();
+                var recentMsg = recentMessages.FirstOrDefault(msg => msg.Content == messageContent);
+
+                
+                if (this.plugin.Config.DuplicateCheckMS > 0 && recentMsg != null)
+                {
+                    long msgDiff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - recentMsg.Timestamp.ToUnixTimeMilliseconds();
+                    
+                    if (msgDiff < this.plugin.Config.DuplicateCheckMS)
+                    {
+                        PluginLog.Log($"[IN TESTING]\n DIFF:{msgDiff}ms Skipping duplicate message: {messageContent}");
+                        return;
+                    }
+                        
+                }
+
+                await webhookClient.SendMessageAsync(messageContent,
                     username: displayName, avatarUrl: avatarUrl);
+
+                // the message to a list of recently sent messages. 
+                // If someone else sent the same thing at the same time
+                // both will need to be checked and the earlier timestamp kept
+                // while the newer one is removed
+                // refer to https://discord.com/channels/581875019861328007/684745859497590843/791207648619266060
             }
         }
 
@@ -497,8 +844,10 @@ namespace Dalamud.DiscordBridge
                     continue;
                 }
 
+                var prefix = this.plugin.Config.CFPrefixConfig ?? "";
+
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                await webhookClient.SendMessageAsync(embeds: new[] {embedBuilder.Build()},
+                await webhookClient.SendMessageAsync($"{prefix}", embeds: new[] {embedBuilder.Build()},
                     username: "Dalamud Discord Bridge", avatarUrl: Constant.LogoLink);
             }
         }
