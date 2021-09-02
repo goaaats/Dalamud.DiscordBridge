@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Numerics;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
 

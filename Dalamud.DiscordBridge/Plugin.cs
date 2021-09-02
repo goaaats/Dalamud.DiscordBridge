@@ -1,11 +1,16 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Data;
 using Dalamud.DiscordBridge.Attributes;
 using Dalamud.DiscordBridge.Model;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.Command;
+using Dalamud.Game.Gui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.IoC;
 using Dalamud.Plugin;
 using Lumina.Excel.GeneratedSheets;
 
@@ -16,16 +21,25 @@ namespace Dalamud.DiscordBridge
         private PluginCommandManager<Plugin> commandManager;
         private PluginUI ui;
 
-        public DalamudPluginInterface Interface;
         public DiscordHandler Discord;
         public Configuration Config;
 
         public string Name => "Dalamud.DiscordBridge";
 
-        public void Initialize(DalamudPluginInterface pluginInterface)
-        {
-            this.Interface = pluginInterface;
+        [PluginService]
+        public DalamudPluginInterface Interface { get; private set; }
+        
+        [PluginService]
+        public ClientState State { get; private set; }
 
+        [PluginService]
+        public ChatGui Chat { get; set; }
+
+        [PluginService]
+        public DataManager Data { get; set; }
+
+        public Plugin(CommandManager command)
+        {
             this.Config = (Configuration)this.Interface.GetPluginConfig() ?? new Configuration();
             this.Config.Initialize(this.Interface);
 
@@ -41,16 +55,16 @@ namespace Dalamud.DiscordBridge
             
 
             this.ui = new PluginUI(this);
-            this.Interface.UiBuilder.OnBuildUi += this.ui.Draw;
+            this.Interface.UiBuilder.Draw += this.ui.Draw;
 
-            this.Interface.Framework.Gui.Chat.OnChatMessage += ChatOnOnChatMessage;
-            this.Interface.ClientState.CfPop += ClientStateOnCfPop;
+            this.Chat.ChatMessage += ChatOnOnChatMessage;
+            this.State.CfPop += ClientStateOnCfPop;
 
-            this.commandManager = new PluginCommandManager<Plugin>(this, this.Interface);
+            this.commandManager = new PluginCommandManager<Plugin>(this, command);
 
             if (string.IsNullOrEmpty(this.Config.DiscordToken))
             {
-                this.Interface.Framework.Gui.Chat.PrintError("The Discord Bridge plugin was installed successfully." +
+                this.Chat.PrintError("The Discord Bridge plugin was installed successfully." +
                                                               "Please use the \"/pdiscord\" command to set it up.");
             }
         }
@@ -114,8 +128,8 @@ namespace Dalamud.DiscordBridge
         public void SaleDebugCommand(string command, string args)
         {
             // make a sample sale message. This is using Titanium Ore for an item
-            Item sampleitem = Interface.Data.GetExcelSheet<Item>().GetRow(12537);
-            SeString sameplesale = new SeString(new Payload[] {new TextPayload("The "), new ItemPayload(Interface.Data, sampleitem.RowId, true), new TextPayload(sampleitem.Name) ,new TextPayload(" you put up for sale in the Crystarium markets has sold for 777 gil (after fees).") });
+            Item sampleitem = Data.GetExcelSheet<Item>().GetRow(12537);
+            SeString sameplesale = new SeString(new Payload[] {new TextPayload("The "), new ItemPayload(sampleitem.RowId, true), new TextPayload(sampleitem.Name) ,new TextPayload(" you put up for sale in the Crystarium markets has sold for 777 gil (after fees).") });
 
             // PluginLog.Information($"Trying to make a fake sale: {sameplesale.TextValue}");
 
@@ -126,9 +140,10 @@ namespace Dalamud.DiscordBridge
                 Sender = new SeString(new Payload[] { new TextPayload("Test Sender"), })
             });
 
-            Interface.Framework.Gui.Chat.PrintChat(new XivChatEntry
+            Chat.PrintChat(new XivChatEntry
             {
-                MessageBytes = sameplesale.Encode()
+                Message = sameplesale,
+                Type = XivChatType.Echo
             });
         }
 
@@ -139,7 +154,7 @@ namespace Dalamud.DiscordBridge
         {
             foreach (var keyValuePair in XivChatTypeExtensions.TypeInfoDict)
             {
-                this.Interface.Framework.Gui.Chat.Print($"{keyValuePair.Key.GetSlug()} - {keyValuePair.Key.GetFancyName()}");
+                Chat.Print($"{keyValuePair.Key.GetSlug()} - {keyValuePair.Key.GetFancyName()}");
             }
         }
 
@@ -154,7 +169,9 @@ namespace Dalamud.DiscordBridge
 
             this.Interface.SavePluginConfig(this.Config);
 
-            this.Interface.UiBuilder.OnBuildUi -= this.ui.Draw;
+            this.Interface.UiBuilder.Draw -= this.ui.Draw;
+
+            this.State.CfPop -= this.ClientStateOnCfPop;
 
             this.Interface.Dispose();
         }
