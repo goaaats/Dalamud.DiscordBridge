@@ -139,6 +139,10 @@ namespace Dalamud.DiscordBridge
 
             var args = message.Content.Split();
 
+            // if it doesn't start with the bot prefix, ignore it.
+            if (!args[0].StartsWith(this.plugin.Config.DiscordBotPrefix))
+                return;
+
             /*
             // this is only needed for debugging purposes.
             foreach (var s in args)
