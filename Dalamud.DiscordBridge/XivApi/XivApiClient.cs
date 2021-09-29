@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using Newtonsoft.Json.Linq;
 

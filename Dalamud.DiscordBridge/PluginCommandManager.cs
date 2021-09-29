@@ -12,13 +12,13 @@ namespace Dalamud.DiscordBridge
 {
     public class PluginCommandManager<THost> : IDisposable
     {
-        private readonly DalamudPluginInterface pluginInterface;
+        private readonly CommandManager command;
         private readonly (string, CommandInfo)[] pluginCommands;
         private readonly THost host;
 
-        public PluginCommandManager(THost host, DalamudPluginInterface pluginInterface)
+        public PluginCommandManager(THost host, CommandManager command)
         {
-            this.pluginInterface = pluginInterface;
+            this.command = command;
             this.host = host;
 
             this.pluginCommands = host.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
@@ -38,7 +38,7 @@ namespace Dalamud.DiscordBridge
             for (var i = 0; i < this.pluginCommands.Length; i++)
             {
                 var (command, commandInfo) = this.pluginCommands[i];
-                this.pluginInterface.CommandManager.AddHandler(command, commandInfo);
+                this.command.AddHandler(command, commandInfo);
             }
         }
 
@@ -47,7 +47,7 @@ namespace Dalamud.DiscordBridge
             for (var i = 0; i < this.pluginCommands.Length; i++)
             {
                 var (command, _) = this.pluginCommands[i];
-                this.pluginInterface.CommandManager.RemoveHandler(command);
+                this.command.RemoveHandler(command);
             }
         }
 

@@ -1,21 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net.Configuration;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
 using Dalamud.DiscordBridge.XivApi;
 using Dalamud.Game.Text;
-using Dalamud.Plugin;
+using Dalamud.Logging;
 using Discord;
 using Discord.Net.Providers.WS4Net;
-using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
-using Lumina.Excel.GeneratedSheets;
 using Lumina.Text;
 
 namespace Dalamud.DiscordBridge
@@ -830,7 +823,7 @@ namespace Dalamud.DiscordBridge
                 .WithFooter(footer =>
                 {
                     footer
-                        .WithText("For: " + this.plugin.Interface.ClientState.LocalPlayer.Name)
+                        .WithText("For: " + this.plugin.State.LocalPlayer?.Name)
                         .WithIconUrl(Constant.LogoLink);
                 });
 
