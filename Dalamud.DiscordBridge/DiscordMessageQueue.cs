@@ -143,8 +143,10 @@ namespace Dalamud.DiscordBridge
                             var senderWorld = string.Empty;
 
                             // for debugging. Make sure to comment this out for releases.
+                            /*
                             PluginLog.Debug($"Type: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} "
-                                                        + $"Message: {chatEvent.Message.TextValue}");
+                                + $"Message: {chatEvent.Message.TextValue}");
+                            */
 
                             try
                             {
@@ -239,8 +241,10 @@ namespace Dalamud.DiscordBridge
                                 else
                                 {
                                     // only do this one if it's debug
+                                    /*
                                     PluginLog.Debug($"Plugin interface LocalPlayer was null.\n"
                                         + $"ChatType: {chatEvent.ChatType} ({(int)chatEvent.ChatType}) Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
+                                    */
                                     senderName = string.Empty;
                                     senderWorld = string.Empty;
                                 }

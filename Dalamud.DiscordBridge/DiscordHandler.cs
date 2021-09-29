@@ -139,10 +139,13 @@ namespace Dalamud.DiscordBridge
 
             var args = message.Content.Split();
 
+            /*
+            // this is only needed for debugging purposes.
             foreach (var s in args)
             {
                 PluginLog.Verbose(s);
             }
+            */
 
             PluginLog.Verbose("Received command: {0}", args[0]);
 
