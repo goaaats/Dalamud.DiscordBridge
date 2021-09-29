@@ -65,7 +65,8 @@ namespace Dalamud.DiscordBridge
             if (this.plugin.Discord.State == DiscordState.Ready && ImGui.Button("Join my server"))
             {
                 Process.Start(
-                    $"https://discordapp.com/oauth2/authorize?client_id={this.plugin.Discord.UserId}&scope=bot&permissions=537258064");
+                    // $"https://discordapp.com/oauth2/authorize?client_id={this.plugin.Discord.UserId}&scope=bot&permissions=537258064");
+                    $"https://discordapp.com/oauth2/authorize?client_id={this.plugin.Discord.UserId}&scope=bot&permissions=2684742720");
             }
 
             ImGui.Dummy(new Vector2(10, 10));
