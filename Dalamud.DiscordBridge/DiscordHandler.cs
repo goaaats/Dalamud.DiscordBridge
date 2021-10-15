@@ -560,6 +560,14 @@ namespace Dalamud.DiscordBridge
                         return;
                     }
 
+                    if (config == null || config.ChatTypes.Count == 0) 
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"There are no channel kinds set for this channel right now.\nPlease use the ``{this.plugin.Config.DiscordBotPrefix}setchannel`` command to do this.",
+                            "Error", EmbedColorFine);
+                        return;
+                    }
+
                     await SendGenericEmbed(message.Channel,
                         $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);

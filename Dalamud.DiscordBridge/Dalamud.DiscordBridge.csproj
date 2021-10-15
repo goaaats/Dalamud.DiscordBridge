@@ -9,7 +9,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <NoWarn>IDE0003</NoWarn>
-    <AssemblyVersion>1.1.1.7</AssemblyVersion>
+    <AssemblyVersion>1.1.1.8</AssemblyVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
