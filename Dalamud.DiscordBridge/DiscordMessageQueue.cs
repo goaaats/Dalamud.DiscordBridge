@@ -13,6 +13,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Lumina;
 
 namespace Dalamud.DiscordBridge
 {
@@ -257,7 +258,7 @@ namespace Dalamud.DiscordBridge
 
                             try
                             {
-                                await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName.TextValue, senderWorld, chatEvent.ChatType);
+                                await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName.TextValue, senderWorld, chatEvent.ChatType, chatEvent.AvatarUrl);
                             }
                             catch (Exception e)
                             {
