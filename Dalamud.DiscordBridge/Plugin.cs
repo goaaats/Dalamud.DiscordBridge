@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Data;
+using Dalamud.DiscordBridge.API;
 using Dalamud.DiscordBridge.Attributes;
 using Dalamud.DiscordBridge.Model;
 using Dalamud.Game.ClientState;
@@ -23,6 +24,7 @@ namespace Dalamud.DiscordBridge
 
         public DiscordHandler Discord;
         public Configuration Config;
+        public DiscordBridgeProvider DiscordBridgeProvider;
 
         public string Name => "Dalamud.DiscordBridge";
 
@@ -44,7 +46,7 @@ namespace Dalamud.DiscordBridge
             this.Config.Initialize(this.Interface);
 
             
-
+            this.DiscordBridgeProvider = new DiscordBridgeProvider(this.Interface, new DiscordBridgeAPI(this));
             this.Discord = new DiscordHandler(this);
             // Task t = this.Discord.Start(); // bot won't start if we just have this
             
@@ -163,6 +165,8 @@ namespace Dalamud.DiscordBridge
         {
             if (!disposing) return;
 
+            this.DiscordBridgeProvider.Dispose();
+            
             this.Discord.Dispose();
 
             this.commandManager.Dispose();

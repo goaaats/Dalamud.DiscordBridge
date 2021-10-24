@@ -709,11 +709,25 @@ namespace Dalamud.DiscordBridge
 
         }
 
-        public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType)
+        public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType, string avatarUrl = "")
         {
-            // Special case for outgoing tells, these should be sent under Incoming tells
-            if (chatType == XivChatType.TellOutgoing) {
-                chatType = XivChatType.TellIncoming;
+            // set fields for true chat messages or custom via ipc
+            if (chatType != XivChatTypeExtensions.IpcChatType)
+            {
+                // Special case for outgoing tells, these should be sent under Incoming tells
+                if (chatType == XivChatType.TellOutgoing) {
+                    chatType = XivChatType.TellIncoming;
+                }
+            }
+            else
+            {
+                senderWorld = null;
+            }
+
+            // default avatar url to logo link if empty
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                avatarUrl = Constant.LogoLink;
             }
 
             var applicableChannels =
@@ -724,7 +738,7 @@ namespace Dalamud.DiscordBridge
 
             message = this.specialChars.TransformToUnicode(message);
 
-            var avatarUrl = Constant.LogoLink;
+            
             try
             {
                 switch (chatType)
@@ -789,7 +803,8 @@ namespace Dalamud.DiscordBridge
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                var messageContent = $"{prefix}**[{chatTypeText}]** {message}";
+                var messageContent = chatType != XivChatTypeExtensions.IpcChatType ? $"{prefix}**[{chatTypeText}]** {message}" : $"{prefix} {message}";
+
 
                 // check for duplicates before sending
                 // straight up copied from the previous bot, but I have no way to test this myself.

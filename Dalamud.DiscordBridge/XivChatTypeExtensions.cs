@@ -13,6 +13,8 @@ namespace Dalamud.DiscordBridge
             public string FancyName { get; set; }
         }
 
+        public static XivChatType IpcChatType => (XivChatType)99; // using dummy code that isn't used by game
+
         public static readonly IReadOnlyDictionary<XivChatType, XivChatTypeInfo> TypeInfoDict =
             new Dictionary<XivChatType, XivChatTypeInfo>
             {
@@ -297,6 +299,13 @@ namespace Dalamud.DiscordBridge
                     {
                         Slug = "retainersale",
                         FancyName = "Retainer Sale"
+                    }
+                },
+                {
+                    IpcChatType, new XivChatTypeInfo
+                    {
+                        Slug = "ipc",
+                        FancyName = "IPC"
                     }
                 },
                 // Special handling for GM types
