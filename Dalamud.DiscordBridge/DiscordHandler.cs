@@ -824,8 +824,10 @@ namespace Dalamud.DiscordBridge
                         
                 }
 
-                await webhookClient.SendMessageAsync(messageContent,
-                    username: displayName, avatarUrl: avatarUrl);
+                await webhookClient.SendMessageAsync(
+                    messageContent,username: displayName, avatarUrl: avatarUrl, 
+                    allowedMentions: new AllowedMentions(AllowedMentionTypes.Roles | AllowedMentionTypes.Users | AllowedMentionTypes.None)
+                );
 
                 // the message to a list of recently sent messages. 
                 // If someone else sent the same thing at the same time
