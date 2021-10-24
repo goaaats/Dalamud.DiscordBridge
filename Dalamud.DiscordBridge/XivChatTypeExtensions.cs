@@ -17,6 +17,13 @@ namespace Dalamud.DiscordBridge
             new Dictionary<XivChatType, XivChatTypeInfo>
             {
                 {
+                    XivChatType.None, new XivChatTypeInfo
+                    {
+                        Slug = "none",
+                        FancyName = "No Chat Type"
+                    }
+                },
+                {
                     XivChatType.Debug, new XivChatTypeInfo
                     {
                         Slug = "debug",
@@ -245,6 +252,27 @@ namespace Dalamud.DiscordBridge
                     {
                         Slug = "sysmsg",
                         FancyName = "SystemMessage"
+                    }
+                },
+                {
+                    XivChatType.SystemError, new XivChatTypeInfo
+                    {
+                        Slug = "syserror",
+                        FancyName = "SystemError"
+                    }
+                },
+                {
+                    XivChatType.GatheringSystemMessage, new XivChatTypeInfo
+                    {
+                        Slug = "gathersysmsg",
+                        FancyName = "GatheringSystemMessage"
+                    }
+                },
+                {
+                    XivChatType.ErrorMessage, new XivChatTypeInfo
+                    {
+                        Slug = "errmsg",
+                        FancyName = "ErrorMessage"
                     }
                 },
                 // TODO: fellowships and shit, need dalamud update
