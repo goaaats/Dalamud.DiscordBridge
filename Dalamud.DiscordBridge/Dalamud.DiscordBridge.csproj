@@ -77,5 +77,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+	
+	<Target Name="CopyToDevPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+		<Exec Command="if not exist $(AppData)\XIVLauncher\devPlugins\$(TargetName) (mkdir $(AppData)\XIVLauncher\devPlugins\$(TargetName))" />
+		<Exec Command="copy $(TargetDir)*.dll $(AppData)\XIVLauncher\devPlugins\$(TargetName)" />
+		<Exec Command="copy $(TargetDir)*.pdb $(AppData)\XIVLauncher\devPlugins\$(TargetName)" />
+	</Target>
 
 </Project>
