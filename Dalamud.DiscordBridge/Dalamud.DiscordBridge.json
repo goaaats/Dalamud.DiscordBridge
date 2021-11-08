@@ -6,5 +6,6 @@
   "RepoUrl": "https://github.com/reiichi001/Dalamud.DiscordBridge",
   "ApplicableVersion": "any",
   "Tags": [ "discord", "chat" ],
-  "Punchline": "Receive your chat messages via Discord."
+  "Punchline": "Receive your chat messages via Discord.",
+  "Changelog": "Switched from XIVAPI search to NetStone."
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
@@ -10,6 +11,10 @@ using Discord.Net.Providers.WS4Net;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Lumina.Text;
+using NetStone;
+using NetStone.Model.Parseables.Character;
+using NetStone.Model.Parseables.Search.Character;
+using NetStone.Search.Character;
 
 namespace Dalamud.DiscordBridge
 {
@@ -20,6 +25,8 @@ namespace Dalamud.DiscordBridge
 
         public bool IsConnected => this.socketClient.ConnectionState == ConnectionState.Connected;
         public ulong UserId => this.socketClient.CurrentUser.Id;
+
+        private static readonly ConcurrentDictionary<string, LodestoneCharacter> CachedResponses = new ConcurrentDictionary<string, LodestoneCharacter>();
 
         /// <summary>
         /// Defines if the bot has connected and verified that it has the correct permissions
@@ -80,6 +87,8 @@ namespace Dalamud.DiscordBridge
         /// </summary>
         public readonly DiscordMessageQueue MessageQueue;
 
+        private LodestoneClient lodestoneClient;
+
         public DiscordHandler(Plugin plugin)
         {
             this.plugin = plugin;
@@ -87,8 +96,6 @@ namespace Dalamud.DiscordBridge
             this.specialChars = new SpecialCharsHandler();
 
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
-
-
 
             this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
             {
@@ -101,6 +108,7 @@ namespace Dalamud.DiscordBridge
 
         public async Task Start()
         {
+
             if (string.IsNullOrEmpty(this.plugin.Config.DiscordToken))
             {
                 this.State = DiscordState.TokenInvalid;
@@ -120,6 +128,8 @@ namespace Dalamud.DiscordBridge
             }
 
             this.MessageQueue.Start();
+
+            lodestoneClient = await LodestoneClient.GetClientAsync();
 
             PluginLog.Verbose("DiscordHandler START!!");
         }
@@ -754,7 +764,28 @@ namespace Dalamud.DiscordBridge
                         if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld) 
                             && senderName != "Sonar" && senderName.Contains(" "))
                         {
-                            avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                            var playerCacheName = $"{senderName}@{senderWorld}";
+                            
+                            if (CachedResponses.TryGetValue(playerCacheName, out LodestoneCharacter lschar))
+                            {
+                                PluginLog.Verbose("Retrived cached data for " + lschar.Name);
+                                avatarUrl = lschar.Avatar.ToString();
+                            }
+                            else
+                            {
+                                PluginLog.Verbose("Searching lodestone for " + lschar.Name);
+                                lschar = await lodestoneClient.SearchCharacter(new CharacterSearchQuery()
+                                {
+                                    CharacterName = senderName,
+                                    World = senderWorld,
+                                }).Result.Results.FirstOrDefault(result => result.Name == senderName).GetCharacter();
+
+                                CachedResponses.TryAdd(playerCacheName, lschar);
+                                PluginLog.Verbose("Adding cached data for " + lschar.Name);
+                                avatarUrl = lschar.Avatar.ToString();
+                            }
+
+                            // avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
                         }
                         
                         break;
