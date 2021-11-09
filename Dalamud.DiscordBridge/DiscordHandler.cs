@@ -761,19 +761,35 @@ namespace Dalamud.DiscordBridge
                         break;
                     default:
                         // don't even bother searching if it's gonna be invalid
-                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld) 
-                            && senderName != "Sonar" && senderName.Contains(" "))
+                        bool doSearch = true;
+                        if (string.IsNullOrEmpty(senderName))
+                        {
+                            PluginLog.Verbose($"Sender Name was null or empty: {senderName}");
+                            doSearch = false;
+                        }
+                        if (string.IsNullOrEmpty(senderWorld))
+                        {
+                            PluginLog.Verbose($"Sender World was null or empty: {senderWorld}");
+                            doSearch = false;
+                        }
+                        if (senderName == "Sonar" || !senderName.Contains(" "))
+                        {
+                            PluginLog.Verbose($"Sender Name was a plugin or invalid: {senderName}");
+                            doSearch = false;
+                        }
+                        if (doSearch)
                         {
                             var playerCacheName = $"{senderName}@{senderWorld}";
+                            PluginLog.Verbose($"Searching for {playerCacheName}");
                             
                             if (CachedResponses.TryGetValue(playerCacheName, out LodestoneCharacter lschar))
                             {
-                                PluginLog.Verbose("Retrived cached data for " + lschar.Name);
+                                PluginLog.Verbose($"Retrived cached data for {lschar.Name} {lschar.Avatar.ToString()}");
                                 avatarUrl = lschar.Avatar.ToString();
                             }
                             else
                             {
-                                PluginLog.Verbose("Searching lodestone for " + lschar.Name);
+                                PluginLog.Verbose($"Searching lodestone for {playerCacheName}");
                                 lschar = await lodestoneClient.SearchCharacter(new CharacterSearchQuery()
                                 {
                                     CharacterName = senderName,
@@ -781,7 +797,7 @@ namespace Dalamud.DiscordBridge
                                 }).Result.Results.FirstOrDefault(result => result.Name == senderName).GetCharacter();
 
                                 CachedResponses.TryAdd(playerCacheName, lschar);
-                                PluginLog.Verbose("Adding cached data for " + lschar.Name);
+                                PluginLog.Verbose($"Adding cached data for {lschar.Name} {lschar.Avatar}");
                                 avatarUrl = lschar.Avatar.ToString();
                             }
 
