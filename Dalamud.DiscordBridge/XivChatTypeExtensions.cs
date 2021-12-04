@@ -13,9 +13,18 @@ namespace Dalamud.DiscordBridge
             public string FancyName { get; set; }
         }
 
+        public static XivChatType IpcChatType => (XivChatType)99; // using dummy code that isn't used by game
+
         public static readonly IReadOnlyDictionary<XivChatType, XivChatTypeInfo> TypeInfoDict =
             new Dictionary<XivChatType, XivChatTypeInfo>
             {
+                {
+                    XivChatType.None, new XivChatTypeInfo
+                    {
+                        Slug = "none",
+                        FancyName = "No Chat Type"
+                    }
+                },
                 {
                     XivChatType.Debug, new XivChatTypeInfo
                     {
@@ -247,6 +256,27 @@ namespace Dalamud.DiscordBridge
                         FancyName = "SystemMessage"
                     }
                 },
+                {
+                    XivChatType.SystemError, new XivChatTypeInfo
+                    {
+                        Slug = "syserror",
+                        FancyName = "SystemError"
+                    }
+                },
+                {
+                    XivChatType.GatheringSystemMessage, new XivChatTypeInfo
+                    {
+                        Slug = "gathersysmsg",
+                        FancyName = "GatheringSystemMessage"
+                    }
+                },
+                {
+                    XivChatType.ErrorMessage, new XivChatTypeInfo
+                    {
+                        Slug = "errmsg",
+                        FancyName = "ErrorMessage"
+                    }
+                },
                 // TODO: fellowships and shit, need dalamud update
 
                 // Custom types not defined in Dalamud
@@ -269,6 +299,13 @@ namespace Dalamud.DiscordBridge
                     {
                         Slug = "retainersale",
                         FancyName = "Retainer Sale"
+                    }
+                },
+                {
+                    IpcChatType, new XivChatTypeInfo
+                    {
+                        Slug = "ipc",
+                        FancyName = "IPC"
                     }
                 },
                 // Special handling for GM types

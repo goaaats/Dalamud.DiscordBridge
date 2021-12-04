@@ -9,7 +9,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <NoWarn>IDE0003</NoWarn>
-    <AssemblyVersion>1.1.1.5</AssemblyVersion>
+    <AssemblyVersion>1.2.1.1</AssemblyVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -24,6 +24,7 @@
     <PackageReference Include="Discord.Net.Rest" Version="2.3.1" />
     <PackageReference Include="Discord.Net.Webhook" Version="2.3.1" />
     <PackageReference Include="Discord.Net.WebSocket" Version="2.3.1" />
+    <PackageReference Include="NetStone" Version="1.0.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="Discord.Net.Providers.WS4Net" Version="2.3.1" />
   </ItemGroup>
@@ -77,5 +78,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+	
+	<Target Name="CopyToDevPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+		<Exec Command="if not exist $(AppData)\XIVLauncher\devPlugins\$(TargetName) (mkdir $(AppData)\XIVLauncher\devPlugins\$(TargetName))" />
+		<Exec Command="copy $(TargetDir)*.dll $(AppData)\XIVLauncher\devPlugins\$(TargetName)" />
+		<Exec Command="copy $(TargetDir)*.pdb $(AppData)\XIVLauncher\devPlugins\$(TargetName)" />
+	</Target>
 
 </Project>

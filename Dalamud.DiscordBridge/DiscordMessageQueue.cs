@@ -13,6 +13,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Lumina;
 
 namespace Dalamud.DiscordBridge
 {
@@ -143,8 +144,10 @@ namespace Dalamud.DiscordBridge
                             var senderWorld = string.Empty;
 
                             // for debugging. Make sure to comment this out for releases.
+                            /*
                             PluginLog.Debug($"Type: {chatEvent.ChatType} Sender: {chatEvent.Sender.TextValue} "
-                                                        + $"Message: {chatEvent.Message.TextValue}");
+                                + $"Message: {chatEvent.Message.TextValue}");
+                            */
 
                             try
                             {
@@ -239,8 +242,10 @@ namespace Dalamud.DiscordBridge
                                 else
                                 {
                                     // only do this one if it's debug
+                                    /*
                                     PluginLog.Debug($"Plugin interface LocalPlayer was null.\n"
                                         + $"ChatType: {chatEvent.ChatType} ({(int)chatEvent.ChatType}) Sender: {chatEvent.Sender.TextValue} Message: {chatEvent.Message.TextValue}");
+                                    */
                                     senderName = string.Empty;
                                     senderWorld = string.Empty;
                                 }
@@ -253,7 +258,7 @@ namespace Dalamud.DiscordBridge
 
                             try
                             {
-                                await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName.TextValue, senderWorld, chatEvent.ChatType);
+                                await this.plugin.Discord.SendChatEvent(chatEvent.Message.TextValue, senderName.TextValue, senderWorld, chatEvent.ChatType, chatEvent.AvatarUrl);
                             }
                             catch (Exception e)
                             {

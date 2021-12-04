@@ -66,14 +66,23 @@ namespace Dalamud.DiscordBridge
             if (this.plugin.Discord.State == DiscordState.Ready && ImGui.Button("Join my server"))
             {
                 Process.Start(
-                    $"https://discordapp.com/oauth2/authorize?client_id={this.plugin.Discord.UserId}&scope=bot&permissions=537258064");
+                    new ProcessStartInfo { 
+                        FileName = $"https://discordapp.com/oauth2/authorize?client_id={this.plugin.Discord.UserId}&scope=bot&permissions=2684742720", UseShellExecute = true 
+                    } 
+                );
             }
 
             ImGui.Dummy(new Vector2(10, 10));
 
             if (ImGui.Button("How does this work?"))
             {
-                Process.Start(Constant.HelpLink);
+                Process.Start(
+                    new ProcessStartInfo
+                    {
+                        FileName = Constant.HelpLink,
+                        UseShellExecute = true
+                    } 
+                );
             }
 
             ImGui.SameLine();

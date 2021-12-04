@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Dalamud.DiscordBridge.Model;
@@ -10,6 +11,10 @@ using Discord.Net.Providers.WS4Net;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Lumina.Text;
+using NetStone;
+using NetStone.Model.Parseables.Character;
+using NetStone.Model.Parseables.Search.Character;
+using NetStone.Search.Character;
 
 namespace Dalamud.DiscordBridge
 {
@@ -20,6 +25,8 @@ namespace Dalamud.DiscordBridge
 
         public bool IsConnected => this.socketClient.ConnectionState == ConnectionState.Connected;
         public ulong UserId => this.socketClient.CurrentUser.Id;
+
+        private static readonly ConcurrentDictionary<string, LodestoneCharacter> CachedResponses = new ConcurrentDictionary<string, LodestoneCharacter>();
 
         /// <summary>
         /// Defines if the bot has connected and verified that it has the correct permissions
@@ -80,6 +87,8 @@ namespace Dalamud.DiscordBridge
         /// </summary>
         public readonly DiscordMessageQueue MessageQueue;
 
+        private LodestoneClient lodestoneClient;
+
         public DiscordHandler(Plugin plugin)
         {
             this.plugin = plugin;
@@ -87,8 +96,6 @@ namespace Dalamud.DiscordBridge
             this.specialChars = new SpecialCharsHandler();
 
             this.MessageQueue = new DiscordMessageQueue(this.plugin);
-
-
 
             this.socketClient = new DiscordSocketClient(new DiscordSocketConfig
             {
@@ -101,6 +108,7 @@ namespace Dalamud.DiscordBridge
 
         public async Task Start()
         {
+
             if (string.IsNullOrEmpty(this.plugin.Config.DiscordToken))
             {
                 this.State = DiscordState.TokenInvalid;
@@ -121,6 +129,8 @@ namespace Dalamud.DiscordBridge
 
             this.MessageQueue.Start();
 
+            lodestoneClient = await LodestoneClient.GetClientAsync();
+
             PluginLog.Verbose("DiscordHandler START!!");
         }
 
@@ -139,10 +149,17 @@ namespace Dalamud.DiscordBridge
 
             var args = message.Content.Split();
 
+            // if it doesn't start with the bot prefix, ignore it.
+            if (!args[0].StartsWith(this.plugin.Config.DiscordBotPrefix))
+                return;
+
+            /*
+            // this is only needed for debugging purposes.
             foreach (var s in args)
             {
                 PluginLog.Verbose(s);
             }
+            */
 
             PluginLog.Verbose("Received command: {0}", args[0]);
 
@@ -553,6 +570,14 @@ namespace Dalamud.DiscordBridge
                         return;
                     }
 
+                    if (config == null || config.ChatTypes.Count == 0) 
+                    {
+                        await SendGenericEmbed(message.Channel,
+                            $"There are no channel kinds set for this channel right now.\nPlease use the ``{this.plugin.Config.DiscordBotPrefix}setchannel`` command to do this.",
+                            "Error", EmbedColorFine);
+                        return;
+                    }
+
                     await SendGenericEmbed(message.Channel,
                         $"OK! This channel has been set to receive the following chat kinds:\n\n```\n{config.ChatTypes.Select(x => $"{x.GetFancyName()}").Aggregate((x, y) => x + "\n" + y)}```",
                         "Chat kinds set", EmbedColorFine);
@@ -694,11 +719,25 @@ namespace Dalamud.DiscordBridge
 
         }
 
-        public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType)
+        public async Task SendChatEvent(string message, string senderName, string senderWorld, XivChatType chatType, string avatarUrl = "")
         {
-            // Special case for outgoing tells, these should be sent under Incoming tells
-            if (chatType == XivChatType.TellOutgoing) {
-                chatType = XivChatType.TellIncoming;
+            // set fields for true chat messages or custom via ipc
+            if (chatType != XivChatTypeExtensions.IpcChatType)
+            {
+                // Special case for outgoing tells, these should be sent under Incoming tells
+                if (chatType == XivChatType.TellOutgoing) {
+                    chatType = XivChatType.TellIncoming;
+                }
+            }
+            else
+            {
+                senderWorld = null;
+            }
+
+            // default avatar url to logo link if empty
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                avatarUrl = Constant.LogoLink;
             }
 
             var applicableChannels =
@@ -709,7 +748,7 @@ namespace Dalamud.DiscordBridge
 
             message = this.specialChars.TransformToUnicode(message);
 
-            var avatarUrl = Constant.LogoLink;
+            
             try
             {
                 switch (chatType)
@@ -722,10 +761,47 @@ namespace Dalamud.DiscordBridge
                         break;
                     default:
                         // don't even bother searching if it's gonna be invalid
-                        if (!string.IsNullOrEmpty(senderName) && !string.IsNullOrEmpty(senderWorld) 
-                            && senderName != "Sonar" && senderName.Contains(" "))
+                        bool doSearch = true;
+                        if (string.IsNullOrEmpty(senderName))
                         {
-                            avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
+                            PluginLog.Verbose($"Sender Name was null or empty: {senderName}");
+                            doSearch = false;
+                        }
+                        if (string.IsNullOrEmpty(senderWorld))
+                        {
+                            PluginLog.Verbose($"Sender World was null or empty: {senderWorld}");
+                            doSearch = false;
+                        }
+                        if (senderName == "Sonar" || !senderName.Contains(" "))
+                        {
+                            PluginLog.Verbose($"Sender Name was a plugin or invalid: {senderName}");
+                            doSearch = false;
+                        }
+                        if (doSearch)
+                        {
+                            var playerCacheName = $"{senderName}@{senderWorld}";
+                            PluginLog.Verbose($"Searching for {playerCacheName}");
+                            
+                            if (CachedResponses.TryGetValue(playerCacheName, out LodestoneCharacter lschar))
+                            {
+                                PluginLog.Verbose($"Retrived cached data for {lschar.Name} {lschar.Avatar.ToString()}");
+                                avatarUrl = lschar.Avatar.ToString();
+                            }
+                            else
+                            {
+                                PluginLog.Verbose($"Searching lodestone for {playerCacheName}");
+                                lschar = await lodestoneClient.SearchCharacter(new CharacterSearchQuery()
+                                {
+                                    CharacterName = senderName,
+                                    World = senderWorld,
+                                }).Result.Results.FirstOrDefault(result => result.Name == senderName).GetCharacter();
+
+                                CachedResponses.TryAdd(playerCacheName, lschar);
+                                PluginLog.Verbose($"Adding cached data for {lschar.Name} {lschar.Avatar}");
+                                avatarUrl = lschar.Avatar.ToString();
+                            }
+
+                            // avatarUrl = (await XivApiClient.GetCharacterSearch(senderName, senderWorld)).AvatarUrl;
                         }
                         
                         break;
@@ -774,7 +850,8 @@ namespace Dalamud.DiscordBridge
                 }
 
                 var webhookClient = await GetOrCreateWebhookClient(socketChannel);
-                var messageContent = $"{prefix}**[{chatTypeText}]** {message}";
+                var messageContent = chatType != XivChatTypeExtensions.IpcChatType ? $"{prefix}**[{chatTypeText}]** {message}" : $"{prefix} {message}";
+
 
                 // check for duplicates before sending
                 // straight up copied from the previous bot, but I have no way to test this myself.
@@ -794,8 +871,10 @@ namespace Dalamud.DiscordBridge
                         
                 }
 
-                await webhookClient.SendMessageAsync(messageContent,
-                    username: displayName, avatarUrl: avatarUrl);
+                await webhookClient.SendMessageAsync(
+                    messageContent,username: displayName, avatarUrl: avatarUrl, 
+                    allowedMentions: new AllowedMentions(AllowedMentionTypes.Roles | AllowedMentionTypes.Users | AllowedMentionTypes.None)
+                );
 
                 // the message to a list of recently sent messages. 
                 // If someone else sent the same thing at the same time
